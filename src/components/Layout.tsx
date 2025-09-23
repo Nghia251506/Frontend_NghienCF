@@ -1,12 +1,9 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import { Music, Home, CreditCard } from 'lucide-react';
+import { IoMdLogIn } from "react-icons/io";
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC = () => {
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
@@ -46,6 +43,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden xs:inline">Đặt vé</span>
               </Link>
+              <Link
+                to="/login"
+                className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg transition-colors text-sm sm:text-base ${
+                  isActive('/') 
+                    ? 'bg-yellow-500/20 text-yellow-400' 
+                    : 'text-gray-300 hover:text-yellow-400 hover:bg-gray-800/50'
+                }`}
+              >
+                <IoMdLogIn className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Admin đăng nhập</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -53,7 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main>
-        {children}
+        <Outlet /> {/* React Router sẽ render Home / Booking / Payment ở đây */}
       </main>
     </div>
   );
