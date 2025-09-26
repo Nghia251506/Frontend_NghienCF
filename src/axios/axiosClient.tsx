@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: "http://localhost:5135/api", // đổi thành URL backend của bạn
+  baseURL: import.meta.env.VITE_API_URL, // đổi thành URL backend của bạn
   headers: {
     "Content-Type": "application/json",
   },

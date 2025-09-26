@@ -1,26 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "../redux/store";
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, ArrowRight } from 'lucide-react';
+import { fetchShows } from "../redux/ShowSlice"
 
 const Home: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const shows = useSelector((state: RootState) => state.shows.items);
+  const backgroundUrl = shows.length > 0 ? shows[0].bannerUrl : "default.jpg";
+  const currentShow = shows.length > 0 ? shows[0] : null;
+
+  useEffect(() => {
+    dispatch(fetchShows());
+  }, [dispatch])
   return (
     <div className="relative">
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop')"
+            backgroundImage: `url(${backgroundUrl ?? "default.jpg"})`
           }}
         />
         <div className="absolute inset-0 bg-black/60" />
-        
+
         <div className="relative z-10 text-center text-white max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent leading-tight">
-            MUSIC NIGHT
+            {currentShow?.title ?? "MUSIC NIGHT"}
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-gray-200 px-4">
-            Đêm nhạc đặc biệt với những ca khúc bất hủ
+            {currentShow?.description ?? "Thông tin show diễn sẽ được cập nhật sớm."}
           </p>
           <Link
             to="/booking"
@@ -44,15 +55,19 @@ const Home: React.FC = () => {
             <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-colors">
               <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-400 mb-4" />
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Thời gian</h3>
-              <p className="text-gray-300 text-sm sm:text-base">15/02/2025 - 20:00</p>
-              <p className="text-gray-400 text-sm">Thứ Bảy</p>
+              <p className="text-gray-300 text-sm sm:text-base">
+                {currentShow ? new Date(currentShow.date).toLocaleString("vi-VN", {
+                  day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+                }) : "Đang cập nhật"}
+              </p>
             </div>
 
             <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-colors">
               <MapPin className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-400 mb-4" />
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Địa điểm</h3>
-              <p className="text-gray-300 text-sm sm:text-base">Nhà hát Hòa Bình</p>
-              <p className="text-gray-400 text-sm">TP. Hồ Chí Minh</p>
+              <p className="text-gray-300 text-sm sm:text-base">
+                {currentShow?.location ?? "Đang cập nhật"}
+              </p>
             </div>
 
             <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-colors sm:col-span-2 lg:col-span-1">
@@ -67,13 +82,7 @@ const Home: React.FC = () => {
             <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6 text-center">Về show diễn</h3>
             <div className="prose prose-lg prose-gray max-w-none">
               <p className="text-gray-300 text-base sm:text-lg leading-relaxed">
-                Music Night là một đêm nhạc đặc biệt quy tụ những nghệ sĩ hàng đầu Việt Nam. 
-                Với không gian âm nhạc đẳng cấp, âm thanh chất lượng cao và sân khấu hoành tráng, 
-                chúng tôi hứa hẹn mang đến cho bạn những trải nghiệm âm nhạc không thể nào quên.
-              </p>
-              <p className="text-gray-300 text-base sm:text-lg leading-relaxed mt-4">
-                Chương trình gồm những ca khúc hit được yêu thích nhất, kết hợp với công nghệ 
-                ánh sáng hiện đại, tạo nên một bữa tiệc thị giác và thính giác tuyệt vời.
+                {currentShow?.description ?? "Thông tin show diễn sẽ được cập nhật sớm."}
               </p>
             </div>
           </div>

@@ -7,6 +7,9 @@ import Booking from './pages/Booking';
 import Payment from './pages/Payment';
 import { BookingProvider } from './contexts/BookingContext';
 import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+// import AddShow from './pages/AddShow';
+// import ListBooking from './pages/ListBooking';
 
 function App() {
   return (
@@ -18,11 +21,13 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/login" element={<Login />} />
           </Route>
 
           {/* ADMIN LAYOUT */}
-          <Route element={<LayoutAdmin />}>
-          <Route path='/admin' element= {<Dashboard/>}/>
+          <Route path="/admin" element={<LayoutAdmin />}>
+            <Route index element={<Dashboard />} /> {/* /admin */}
+            <Route path="dashboard" element={<Dashboard />} /> {/* /admin/dashboard */}
           </Route>
         </Routes>
       </Router>

@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import {
-  DesktopOutlined,
-  FileOutlined,
   PieChartOutlined,
   TeamOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import { FaMusic } from "react-icons/fa";
 import type { MenuProps } from 'antd';
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -21,18 +20,14 @@ function getItem(
   icon?: React.ReactNode,
   children?: MenuItem[],
 ): MenuItem {
-  return {
-    key,
-    icon,
-    children,
-    label,
-  } as MenuItem;
+  return { key, icon, children, label } as MenuItem;
 }
 
 const items: MenuItem[] = [
-  getItem('Thống kê', ' dashboard', <PieChartOutlined />),
+  getItem('Thống kê', 'dashboard', <PieChartOutlined />),
   getItem('Quản lý show', 'show', <FaMusic />, [
     getItem('Thêm combo', 'add'),
+    getItem('Show', 'addshow'),
     getItem('Danh sách đặt', 'list'),
   ]),
   getItem('Thiết kế', 'design', <TeamOutlined />),
@@ -40,20 +35,32 @@ const items: MenuItem[] = [
 
 const LayoutAdmin: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  const onClick: MenuProps['onClick'] = (e) => {
+    navigate(`/admin/${e.key}`);
+    toast.info(`Đang chuyển đến trang: ${e.key}`); // ví dụ toast khi click menu
+  };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
         <div className="demo-logo-vertical" />
-        <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+        <Menu
+          theme="dark"
+          defaultSelectedKeys={['dashboard']}
+          mode="inline"
+          items={items}
+          onClick={onClick}
+        />
       </Sider>
       <Layout>
         <Header style={{ padding: 0, background: colorBgContainer }} />
         <Content style={{ margin: '0 16px' }}>
-          <Breadcrumb style={{ margin: '16px 0' }} items={[{ title: 'User' }, { title: 'Bill' }]} />
+          <Breadcrumb style={{ margin: '16px 0' }} items={[{ title: 'Admin' }, { title: 'Dashboard' }]} />
           <div
             style={{
               padding: 24,
@@ -66,9 +73,12 @@ const LayoutAdmin: React.FC = () => {
           </div>
         </Content>
         <Footer style={{ textAlign: 'center' }}>
-          {/* Ant Design ©{new Date().getFullYear()} Created by Ant UED */}
+          Admin Dashboard ©{new Date().getFullYear()}
         </Footer>
       </Layout>
+
+      {/* Toast container luôn nằm ở cuối layout */}
+      <ToastContainer position="top-right" autoClose={3000} />
     </Layout>
   );
 };
