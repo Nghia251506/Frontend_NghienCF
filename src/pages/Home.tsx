@@ -31,8 +31,16 @@ const Home: React.FC = () => {
             {currentShow?.title ?? "MUSIC NIGHT"}
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-gray-200 px-4">
-            {currentShow?.description ?? "Thông tin show diễn sẽ được cập nhật sớm."}
+            {currentShow?.slogan ?? "Thông tin show diễn sẽ được cập nhật sớm."}
           </p>
+          <div className="p-6 sm:p-8 lg:p-12 mb-2.5">
+            <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6 text-center">Về show diễn</h3>
+            <div className="prose prose-lg prose-gray max-w-none ">
+              <p className="text-gray-300 text-base sm:text-lg leading-relaxed">
+                {currentShow?.description ?? "Thông tin show diễn sẽ được cập nhật sớm."}
+              </p>
+            </div>
+          </div>
           <Link
             to="/booking"
             className="inline-flex items-center bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold py-4 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25"
@@ -73,17 +81,10 @@ const Home: React.FC = () => {
             <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-colors sm:col-span-2 lg:col-span-1">
               <Users className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-400 mb-4" />
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Sức chứa</h3>
-              <p className="text-gray-300 text-sm sm:text-base">2,000 ghế</p>
-              <p className="text-gray-400 text-sm">Còn lại: 1,247 vé</p>
-            </div>
-          </div>
-
-          <div className="bg-gray-800/30 backdrop-blur-lg p-6 sm:p-8 lg:p-12 rounded-2xl border border-yellow-500/20">
-            <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6 text-center">Về show diễn</h3>
-            <div className="prose prose-lg prose-gray max-w-none">
-              <p className="text-gray-300 text-base sm:text-lg leading-relaxed">
-                {currentShow?.description ?? "Thông tin show diễn sẽ được cập nhật sớm."}
+              <p className="text-gray-300 text-sm sm:text-base">
+                {currentShow?.capacity ?? "Đang cập nhật"} ghế
               </p>
+              <p className="text-gray-400 text-sm">Còn lại: 1,247 vé</p>
             </div>
           </div>
         </div>
