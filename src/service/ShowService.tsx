@@ -11,8 +11,6 @@ export const getShowByType = async (title: string): Promise<Show> => {
   return await axiosClient.get(`${SHOW_URL}/${title}`);
 };
 
-
-
 export const createShow = async (dto: ShowCreateDto): Promise<Show> => {
   return await axiosClient.post(SHOW_URL, dto);
 };

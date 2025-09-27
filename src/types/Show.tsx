@@ -15,4 +15,5 @@ export interface ShowCreateDto{
     location: string;
     bannerUrl: string;
     capacity: string;
+    slogan: string;
 }

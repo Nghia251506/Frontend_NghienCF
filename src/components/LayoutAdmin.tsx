@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  LogoutOutlined,
   PieChartOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -8,6 +9,10 @@ import type { MenuProps } from 'antd';
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
 import { Outlet, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
+import { useSelector } from "react-redux"; // ✅ để lấy user
+import { RootState } from "../redux/store";
+import { useDispatch } from "react-redux";
+import { logout } from "../redux/UserSlice";
 import "react-toastify/dist/ReactToastify.css";
 
 const { Header, Content, Footer, Sider } = Layout;
@@ -28,7 +33,8 @@ const items: MenuItem[] = [
   getItem('Quản lý show', 'show', <FaMusic />, [
     getItem('Thêm combo', 'add'),
     getItem('Show', 'addshow'),
-    getItem('Danh sách đặt', 'list'),
+    getItem('Danh sách đặt', 'listorder'),
+    getItem('Danh sách show diễn', 'listshow'),
   ]),
   getItem('Thiết kế', 'design', <TeamOutlined />),
 ];
@@ -40,6 +46,14 @@ const LayoutAdmin: React.FC = () => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  const { currentUser } = useSelector((state: RootState) => state.auth); // ✅ lấy user từ redux
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    toast.success("Đăng xuất thành công!");
+    navigate("/login"); // quay về login
+  };
   const onClick: MenuProps['onClick'] = (e) => {
     navigate(`/admin/${e.key}`);
     toast.info(`Đang chuyển đến trang: ${e.key}`); // ví dụ toast khi click menu
@@ -47,16 +61,53 @@ const LayoutAdmin: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
-        <div className="demo-logo-vertical" />
-        <Menu
-          theme="dark"
-          defaultSelectedKeys={['dashboard']}
-          mode="inline"
-          items={items}
-          onClick={onClick}
-        />
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={(value) => setCollapsed(value)}
+      >
+        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          <div style={{ flex: 1 }}>
+            {/* Welcome user */}
+            {!collapsed && (
+              <div style={{ color: "white", padding: 16 }}>
+                Welcome, <b>ntn8530</b>
+              </div>
+            )}
+            <Menu
+              theme="dark"
+              defaultSelectedKeys={["dashboard"]}
+              mode="inline"
+              items={items}
+              onClick={onClick}
+            />
+          </div>
+
+          {/* Nút logout */}
+          <div style={{ padding: 16 }}>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: "100%",
+                background: "red",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                padding: "8px 0",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+              }}
+            >
+              <LogoutOutlined />
+              {!collapsed && "Đăng xuất"}
+            </button>
+          </div>
+        </div>
       </Sider>
+
       <Layout>
         <Header style={{ padding: 0, background: colorBgContainer }} />
         <Content style={{ margin: '0 16px' }}>
