@@ -61,7 +61,6 @@ const ListShow: React.FC = () => {
   const onEdit = (show: Show) => {
     setEditing(show);
     setOpen(true);
-    toast.success("Sửa show thành công!!!")
   };
 
   const onDelete = async (id: number) => {
@@ -83,6 +82,7 @@ const ListShow: React.FC = () => {
     };
     // theo service của bạn: updateShow(title, show)
     await dispatch(editShow({ title: editing.title, show: updated }));
+    toast.success("Sửa show thành công!!!")
     setOpen(false);
     setEditing(null);
   };
@@ -162,7 +162,7 @@ const ListShow: React.FC = () => {
 
   return (
     <div className="p-6">
-      <Card className="max-w-6xl mx-auto rounded-2xl shadow-lg">
+      <Card className="w-full rounded-2xl shadow-lg" bodyStyle={{ padding: 24 }}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <Title level={4} className="!mb-0">Danh sách Show</Title>
           <Input

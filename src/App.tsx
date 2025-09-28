@@ -14,6 +14,8 @@ import { ToastContainer } from "react-toastify";
 import PrivateRoute from './Auth/PrivateRoute';
 import AddShow from './pages/AddShow';
 import ListShow from './pages/ListShow';
+import ListOrder from './pages/ListOrder';
+import ListType from './pages/ListType';
 
 function App() {
   return (
@@ -40,6 +42,8 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} /> {/* /admin/dashboard */}
             <Route path='addshow' element={<AddShow/>}/>
             <Route path='listshow' element={<ListShow/>}/>
+            <Route path='listorder' element={<ListOrder/>}/>
+            <Route path='listtype' element={<ListType/>}/>
           </Route>
 
         </Routes>

@@ -31,7 +31,7 @@ function getItem(
 const items: MenuItem[] = [
   getItem('Thống kê', 'dashboard', <PieChartOutlined />),
   getItem('Quản lý show', 'show', <FaMusic />, [
-    getItem('Thêm combo', 'add'),
+    getItem('Danh sách combo', 'listtype'),
     getItem('Show', 'addshow'),
     getItem('Danh sách đặt', 'listorder'),
     getItem('Danh sách show diễn', 'listshow'),
@@ -129,7 +129,7 @@ const LayoutAdmin: React.FC = () => {
       </Layout>
 
       {/* Toast container luôn nằm ở cuối layout */}
-      <ToastContainer position="top-right" autoClose={3000} />
+      {/* <ToastContainer position="top-right" autoClose={3000} /> */}
     </Layout>
   );
 };

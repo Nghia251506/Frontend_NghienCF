@@ -1,12 +1,16 @@
 import { configureStore } from "@reduxjs/toolkit";
 import showReducer from "./ShowSlice";
 import authReducer from "./UserSlice";
+import bookingReducer from "./BookingSlice"
+import tickettypeReducer from "./TicketTypeSlice"
 
 
 export const store = configureStore({
   reducer: {
     shows: showReducer,
-    auth: authReducer
+    auth: authReducer,
+    bookings: bookingReducer ,
+    ticketTypes: tickettypeReducer
   },
 });
 
