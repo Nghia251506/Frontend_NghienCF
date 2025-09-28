@@ -130,7 +130,7 @@ const Booking: React.FC = () => {
 
   // 👇 sửa ở đây
   const res = await dispatch(createBooking(dto)).unwrap(); // BookingResponseDto
-
+console.log("✅ [BOOKING/RECV] Response:", res);
   setBookingData({
     customerName: formData.customerName.trim(),
     phone: formData.phone.trim(),
@@ -139,10 +139,13 @@ const Booking: React.FC = () => {
     totalPrice: res.totalAmount,
     bookingId: res.bookingId,
     paymentQrUrl: res.paymentQrUrl,
+    paymentQrImage: res.paymentQrImage,      // 👈 thêm
+  paymentQrString: res.paymentQrString,    // 👈 thêm
   });
 
   navigate("/payment");
     } catch (err: any) {
+      console.log("❌ [BOOKING/ERR]:", err?.response?.data ?? err);
       const msg =
         err?.response?.data?.message ||
         err?.message ||

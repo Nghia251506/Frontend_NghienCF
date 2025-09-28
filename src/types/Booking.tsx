@@ -34,7 +34,9 @@ export type BookingResponseDto = {
   quantity: number;
   bookingId: number;
   totalAmount: number;
-  paymentQrUrl: string;
+  paymentQrUrl: string;    // có thể null
+  paymentQrImage?: string;   // data:image/png;base64,...
+  paymentQrString?: string;  // “000201...”
 };
 
 export interface BookingData {
@@ -49,4 +51,6 @@ export interface BookingData {
   bookingId?: number;
   paymentQrUrl?: string;
   paymentStatus?: "pending" | "paid" | "failed";
+  paymentQrImage?: string;   // data:image/png;base64,...
+  paymentQrString?: string;  // “000201...”
 }

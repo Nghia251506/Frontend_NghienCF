@@ -35,6 +35,7 @@ const items: MenuItem[] = [
     getItem('Show', 'addshow'),
     getItem('Danh sách đặt', 'listorder'),
     getItem('Danh sách show diễn', 'listshow'),
+    getItem('Danh sách vé đã đặt', 'listticket'),
   ]),
   getItem('Thiết kế', 'design', <TeamOutlined />),
 ];
