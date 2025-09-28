@@ -1,12 +1,14 @@
 import axiosClient from "../axios/axiosClient";
-import { Booking, BookingDto } from "../types/Booking";
+import { Booking, BookingDto, BookingResponseDto, CreateBookingDto } from "../types/Booking";
+
+
 
 const BOOKING_URL = "/booking";
 
-export const getAllShows = async (): Promise<Booking[]> => {
+export const getAllBooking = async (): Promise<Booking[]> => {
   return await axiosClient.get(`${BOOKING_URL}/getall`);
 };
 
-export const createShow = async (dto: BookingDto): Promise<Booking> => {
+export const createBooking = async (dto: CreateBookingDto): Promise<BookingResponseDto> => {
   return await axiosClient.post(`${BOOKING_URL}/create`, dto);
 };

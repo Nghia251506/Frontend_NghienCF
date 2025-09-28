@@ -1,6 +1,6 @@
 import React from "react";
 import { Form, Input, DatePicker, InputNumber, Button, Card } from "antd";
-import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { useAppDispatch, useAppSelector } from "../redux/hook";
 import { addShow } from "../redux/ShowSlice";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";

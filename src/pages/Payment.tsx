@@ -23,7 +23,7 @@ const Payment: React.FC = () => {
       const paymentData = {
         amount: bookingData.totalPrice,
         orderId: `TICKET-${Date.now()}`,
-        description: `Vé ${bookingData.combo} - ${bookingData.fullName}`
+        description: `Vé ${bookingData.combo} - ${bookingData.customerName}`
       };
       
       try {

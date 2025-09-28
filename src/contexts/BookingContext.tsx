@@ -1,36 +1,27 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { BookingData } from '../types';
+import React, { createContext, useContext, useState } from "react";
+import { BookingData } from "../types/Booking"; // ⬅️ import mới
 
-interface BookingContextType {
+type BookingCtx = {
   bookingData: BookingData | null;
-  setBookingData: (data: BookingData) => void;
-  clearBooking: () => void;
-}
-
-const BookingContext = createContext<BookingContextType | undefined>(undefined);
-
-export const useBooking = () => {
-  const context = useContext(BookingContext);
-  if (!context) {
-    throw new Error('useBooking must be used within BookingProvider');
-  }
-  return context;
+  setBookingData: (d: BookingData) => void;
+  clear: () => void;
 };
 
-interface BookingProviderProps {
-  children: ReactNode;
-}
+const Ctx = createContext<BookingCtx>({
+  bookingData: null,
+  setBookingData: () => {},
+  clear: () => {},
+});
 
-export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) => {
+export const BookingProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
-
-  const clearBooking = () => {
-    setBookingData(null);
-  };
+  const clear = () => setBookingData(null);
 
   return (
-    <BookingContext.Provider value={{ bookingData, setBookingData, clearBooking }}>
+    <Ctx.Provider value={{ bookingData, setBookingData, clear }}>
       {children}
-    </BookingContext.Provider>
+    </Ctx.Provider>
   );
 };
+
+export const useBooking = () => useContext(Ctx);

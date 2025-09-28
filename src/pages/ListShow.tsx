@@ -18,7 +18,7 @@ import {
   SearchOutlined,
   CheckCircleTwoTone,
 } from "@ant-design/icons";
-import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { useAppDispatch, useAppSelector } from "../redux/hook";
 import {
   fetchShows,
   editShow,
