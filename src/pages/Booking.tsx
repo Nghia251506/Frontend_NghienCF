@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { fetchShows } from "../redux/ShowSlice";
-import { fetchTicketTypes } from "../redux/TicketTypeSlice";
+import { fetchByShowId } from "../redux/TicketTypeSlice";
 import { createBooking } from "../redux/BookingSlice";
 import { useBooking } from "../contexts/BookingContext";
 import { Star, Check } from "lucide-react";
@@ -18,6 +18,8 @@ type BookingDataForContext = {
   seatNumbers?: string[];
   bookingId?: number;
   paymentQrUrl?: string;
+  paymentQrImage?: string;   // thêm để Payment dùng nếu backend trả ảnh base64
+  paymentQrString?: string;  // thêm để Payment tự render ảnh từ chuỗi 000201...
 };
 
 const Booking: React.FC = () => {
@@ -26,41 +28,54 @@ const Booking: React.FC = () => {
   const { setBookingData } = useBooking();
   const formRef = useRef<HTMLDivElement>(null);
 
+  // Redux state
   const shows = useSelector((s: RootState) => s.shows.items);
-  // show default mà bạn đã set trong Redux
   const showDefault = useSelector((s: RootState) => s.shows.selected) as { id?: number } | null;
+
+  // Ticket types trong slice nên load theo showId (thunk fetchTicketTypes(showId))
   const types = useSelector((s: RootState) => s.ticketTypes.items);
   const loadingTypes = useSelector((s: RootState) => s.ticketTypes.loading);
 
-  const [selectedShowId, setSelectedShowId] = useState<number | null>(null);
+  // local state
+  const selectedShowId = showDefault?.id ?? null;
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
-
   const [formData, setFormData] = useState({
     customerName: "",
     phone: "",
     quantity: 1,
   });
 
+  // 1) Tải danh sách show
   useEffect(() => {
     dispatch(fetchShows());
-    dispatch(fetchTicketTypes());
   }, [dispatch]);
 
-  // đặt selectedShowId theo show default (ẩn khỏi UI)
+  // 2) Chọn show mặc định (từ Redux) -> nếu không có, lấy show đầu tiên khi shows có dữ liệu
   useEffect(() => {
     const idFromDefault = showDefault?.id;
-    if (idFromDefault) {
+    if (idFromDefault && idFromDefault !== selectedShowId) {
       setSelectedShowId(idFromDefault);
       return;
     }
-    // fallback: nếu chưa có default, chọn show đầu tiên
     if (!idFromDefault && shows.length > 0 && !selectedShowId) {
       setSelectedShowId(shows[0].id!);
     }
   }, [showDefault, shows, selectedShowId]);
 
+  // 3) Mỗi khi selectedShowId đổi -> fetch ticket types theo show đó + reset loại vé đang chọn
+  useEffect(() => {
+    if (selectedShowId == null) return;
+    // thunk nên nhận showId, ví dụ: fetchTicketTypes(selectedShowId)
+    dispatch(fetchByShowId(selectedShowId));
+    setSelectedTypeId(null); // reset chọn loại vé khi đổi show
+  }, [selectedShowId, dispatch]);
+
+  // 4) Lọc types theo selectedShowId (nếu slice đã chỉ trả về types của show hiện tại, đoạn này vẫn ok)
   const filteredTypes = useMemo(() => {
-    return selectedShowId ? types.filter((t) => t.showId === selectedShowId) : [];
+    if (!selectedShowId) return [];
+    // Nếu slice đã chỉ chứa types của show hiện tại thì thực ra filter này không cần,
+    // nhưng để an toàn ta vẫn filter theo showId.
+    return types.filter((t) => t.showId === selectedShowId);
   }, [types, selectedShowId]);
 
   const selectedType = useMemo(
@@ -80,7 +95,8 @@ const Booking: React.FC = () => {
   const handleTypeSelect = (typeId: number) => {
     const t = filteredTypes.find((x) => x.id === typeId);
     if (!t) return;
-    if ((t.remainingQuantity ?? t.totalQuantity ?? 0) <= 0) {
+    const remain = (t.remainingQuantity ?? t.totalQuantity ?? 0);
+    if (remain <= 0) {
       toast.warn("Loại vé này đã hết.");
       return;
     }
@@ -90,12 +106,9 @@ const Booking: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (selectedShowId == null) {
       toast.error("Không xác định được show mặc định");
-      return;
-    }
-    if (!selectedType) {
-      toast.error("Vui lòng chọn loại vé");
       return;
     }
     if (!selectedType) {
@@ -121,29 +134,36 @@ const Booking: React.FC = () => {
 
     try {
       const dto = {
-    showId: selectedShowId,
-    ticketTypeId: selectedType.id!,
-    customerName: formData.customerName.trim(),
-    phone: formData.phone.trim(),
-    quantity: formData.quantity,
-  };
+        showId: selectedShowId,
+        ticketTypeId: selectedType.id!,
+        customerName: formData.customerName.trim(),
+        phone: formData.phone.trim(),
+        quantity: formData.quantity,
+      };
 
-  // 👇 sửa ở đây
-  const res = await dispatch(createBooking(dto)).unwrap(); // BookingResponseDto
-console.log("✅ [BOOKING/RECV] Response:", res);
-  setBookingData({
-    customerName: formData.customerName.trim(),
-    phone: formData.phone.trim(),
-    combo: selectedType.name,
-    quantity: formData.quantity,
-    totalPrice: res.totalAmount,
-    bookingId: res.bookingId,
-    paymentQrUrl: res.paymentQrUrl,
-    paymentQrImage: res.paymentQrImage,      // 👈 thêm
-  paymentQrString: res.paymentQrString,    // 👈 thêm
-  });
+      console.log("📤 [BOOKING/SEND] DTO:", dto);
+      const res = await dispatch(createBooking(dto)).unwrap(); // BookingResponseDto
+      console.log("✅ [BOOKING/RECV] Response:", res);
 
-  navigate("/payment");
+      // Lưu vào context để Payment dùng
+      setBookingData({
+        customerName: formData.customerName.trim(),
+        phone: formData.phone.trim(),
+        combo: selectedType.name,
+        quantity: formData.quantity,
+        totalPrice: res.totalAmount,
+        bookingId: res.bookingId,
+        paymentQrUrl: res.paymentQrUrl,
+        paymentQrImage: res.paymentQrImage,     // nếu backend trả
+        paymentQrString: res.paymentQrString,   // nếu backend trả
+      } as BookingDataForContext);
+
+      // Sau khi tạo booking, điều hướng sang trang thanh toán
+      navigate("/payment");
+
+      // (Tuỳ chọn) Nếu bạn muốn quay lại trang này thì mới cần refresh tồn kho:
+      // dispatch(fetchTicketTypes(selectedShowId));
+
     } catch (err: any) {
       console.log("❌ [BOOKING/ERR]:", err?.response?.data ?? err);
       const msg =
@@ -172,22 +192,24 @@ console.log("✅ [BOOKING/RECV] Response:", res);
           <input type="hidden" name="showId" value={selectedShowId ?? ""} readOnly />
         </form>
 
-        {/* Grid Ticket Types (thay cho combos) */}
+        {/* Grid Ticket Types */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
           {filteredTypes.map((tt) => {
             const isPopular = false;
-            const outOfStock =
-              (tt.remainingQuantity ?? tt.totalQuantity ?? 0) <= 0;
+            const remain = (tt.remainingQuantity ?? tt.totalQuantity ?? 0);
+            const outOfStock = remain <= 0;
             const active = selectedTypeId === tt.id;
 
             return (
               <div
                 key={tt.id}
-                className={`relative bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border transition-all duration-300 transform hover:scale-105 ${isPopular
+                className={`relative bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border transition-all duration-300 transform hover:scale-105 ${
+                  isPopular
                     ? "border-yellow-500 shadow-lg shadow-yellow-500/25"
                     : "border-gray-600 hover:border-yellow-500/50"
-                  } ${active ? "ring-2 ring-yellow-500" : ""} ${outOfStock ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
-                  }`}
+                } ${active ? "ring-2 ring-yellow-500" : ""} ${
+                  outOfStock ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                }`}
                 onClick={() => !outOfStock && handleTypeSelect(tt.id!)}
               >
                 {isPopular && (
@@ -209,12 +231,11 @@ console.log("✅ [BOOKING/RECV] Response:", res);
                   <div className="mt-2 text-sm text-gray-300">
                     Còn lại:{" "}
                     <span
-                      className={`font-semibold ${(tt.remainingQuantity ?? 0) === 0
-                          ? "text-red-400"
-                          : "text-green-400"
-                        }`}
+                      className={`font-semibold ${
+                        remain === 0 ? "text-red-400" : "text-green-400"
+                      }`}
                     >
-                      {tt.remainingQuantity ?? tt.totalQuantity}
+                      {remain}
                     </span>
                   </div>
                 </div>
@@ -233,12 +254,13 @@ console.log("✅ [BOOKING/RECV] Response:", res);
                 </ul>
 
                 <button
-                  className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${outOfStock
+                  className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
+                    outOfStock
                       ? "bg-gray-600 text-white cursor-not-allowed"
                       : active
-                        ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
-                        : "bg-gray-700 hover:bg-gray-600 text-white"
-                    }`}
+                      ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
+                      : "bg-gray-700 hover:bg-gray-600 text-white"
+                  }`}
                   disabled={outOfStock}
                 >
                   {outOfStock ? "Hết vé" : active ? "Đang chọn" : "Chọn gói này"}
@@ -262,7 +284,7 @@ console.log("✅ [BOOKING/RECV] Response:", res);
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* hidden showId để “fill dữ liệu” như bạn yêu cầu */}
+              {/* hidden showId để fill dữ liệu */}
               <input type="hidden" name="showId" value={selectedShowId ?? ""} readOnly />
 
               <div>
@@ -328,10 +350,11 @@ console.log("✅ [BOOKING/RECV] Response:", res);
               <button
                 type="submit"
                 disabled={!selectedType}
-                className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${selectedType
+                className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${
+                  selectedType
                     ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
                     : "bg-gray-600 text-white cursor-not-allowed"
-                  }`}
+                }`}
               >
                 Đặt vé ngay
               </button>

@@ -3,6 +3,7 @@ import showReducer from "./ShowSlice";
 import authReducer from "./UserSlice";
 import bookingReducer from "./BookingSlice"
 import tickettypeReducer from "./TicketTypeSlice"
+import ticketsReducer from "./TicketSlice";
 
 
 export const store = configureStore({
@@ -10,7 +11,8 @@ export const store = configureStore({
     shows: showReducer,
     auth: authReducer,
     bookings: bookingReducer ,
-    ticketTypes: tickettypeReducer
+    ticketTypes: tickettypeReducer,
+    tickets: ticketsReducer,
   },
 });
 

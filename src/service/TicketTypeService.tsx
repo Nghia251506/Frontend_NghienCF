@@ -3,6 +3,10 @@ import { TicketType, TicketTypeCreateDto } from "../types/TicketType";
 
 const TICKETTYPE_URL = "/tickettype";
 
+export const getByShowId = async (showId: number): Promise<TicketType[]> => {
+  return await axiosClient.get(`${TICKETTYPE_URL}/by-show/${showId}`);
+};
+
 export const getAllTypes = async (): Promise<TicketType[]> => {
   return await axiosClient.get(`${TICKETTYPE_URL}/getall`);
 };

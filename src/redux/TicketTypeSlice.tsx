@@ -2,11 +2,13 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { TicketType, TicketTypeCreateDto } from "../types/TicketType";
 import {
+  getByShowId as apiGetByShowId,
   getAllTypes as apiGetAllTypes,
   createType as apiCreateType,
   updateType as apiUpdateType,   // <- update by id
   deleteType as apiDeleteType,
 } from "../service/TicketTypeService";
+
 
 interface TicketTypeState {
   items: TicketType[];
@@ -27,6 +29,20 @@ const initialState: TicketTypeState = {
   removingId: null,
   error: null,
 };
+
+export const fetchByShowId = createAsyncThunk<
+  TicketType[],               // Return type
+  number,                     // Argument type (showId)
+  { rejectValue: string }     // Rejected payload type
+>(
+  "ticketTypes/fetchByShowId",
+  async (showId) => {
+      return await apiGetByShowId(showId);
+  },
+  {
+    condition: (showId) => typeof showId === "number" && !Number.isNaN(showId),
+  }
+);
 
 export const fetchTicketTypes = createAsyncThunk<
   TicketType[],
@@ -106,6 +122,18 @@ const ticketTypeSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchByShowId.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchByShowId.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload; // danh sách đã lọc theo show
+      })
+      .addCase(fetchByShowId.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload ?? action.error.message ?? "Unknown error";
+      })
       // fetch
       .addCase(fetchTicketTypes.pending, (state) => {
         state.loading = true;
