@@ -1,108 +1,150 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Ticket, TicketCreateDto } from "../types/Ticket";
-import { createTicket, getTicketsByBooking } from "../service/TicketService";
+import { Ticket, TicketCreateDto, TicketUpdateDto, TicketQuery } from "../types/Ticket";
+import {
+  getAllTickets,
+  getTicketsByBooking,
+  createTicket,
+  updateTicket,
+} from "../service/TicketService";
 
-interface TicketState {
-  itemsByBooking: Record<number, Ticket[]>;
+type TicketState = {
+  items: Ticket[];
   loading: boolean;
-  creating: boolean;
+  updating: boolean;
   error: string | null;
-}
+};
 
 const initialState: TicketState = {
-  itemsByBooking: {},
+  items: [],
   loading: false,
-  creating: false,
+  updating: false,
   error: null,
 };
 
-// Lấy danh sách vé theo booking
+// ==== Thunks ====
+
+// GET all (có thể kèm filter)
+export const fetchTickets = createAsyncThunk<Ticket[], TicketQuery | undefined>(
+  "tickets/fetchAll",
+  async (query, { rejectWithValue }) => {
+    try {
+      return await getAllTickets(query);
+    } catch (e: any) {
+      return rejectWithValue(e?.response?.data?.message || e.message || "Fetch tickets failed");
+    }
+  }
+);
+
+// GET by booking
 export const fetchTicketsByBooking = createAsyncThunk<Ticket[], number>(
   "tickets/fetchByBooking",
   async (bookingId, { rejectWithValue }) => {
     try {
-      const res = await getTicketsByBooking(bookingId);
-      return res;
-    } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.message || err?.message || "Fetch tickets failed"
-      );
+      return await getTicketsByBooking(bookingId);
+    } catch (e: any) {
+      return rejectWithValue(e?.response?.data?.message || e.message || "Fetch tickets by booking failed");
     }
   }
 );
 
-// Sinh N vé cho một booking (loop client-side; nếu có endpoint issue-many thì dùng endpoint đó thay thế)
-export const issueTicketsForBooking = createAsyncThunk<
-  Ticket[], // trả về list vé đã tạo
-  { bookingId: number; quantity: number; eventDate?: string | null }
->(
-  "tickets/issueMany",
-  async ({ bookingId, quantity, eventDate = null }, { rejectWithValue }) => {
+// (tuỳ nhu cầu) POST create
+export const createTicketThunk = createAsyncThunk<Ticket, TicketCreateDto>(
+  "tickets/create",
+  async (dto, { rejectWithValue }) => {
     try {
-      const created: Ticket[] = [];
-      for (let i = 0; i < quantity; i++) {
-        const dto: TicketCreateDto = { bookingId, eventDate };
-        const t = await createTicket(dto);
-        created.push(t);
-      }
-      return created;
-    } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.message || err?.message || "Issue tickets failed"
-      );
+      return await createTicket(dto);
+    } catch (e: any) {
+      return rejectWithValue(e?.response?.data?.message || e.message || "Create ticket failed");
     }
   }
 );
 
+// PUT update
+export const updateTicketThunk = createAsyncThunk<Ticket, { id: number; dto: TicketUpdateDto }>(
+  "tickets/update",
+  async ({ id, dto }, { rejectWithValue }) => {
+    try {
+      return await updateTicket(id, dto);
+    } catch (e: any) {
+      return rejectWithValue(e?.response?.data?.message || e.message || "Update ticket failed");
+    }
+  }
+);
+
+// ==== Slice ====
 const ticketSlice = createSlice({
   name: "tickets",
   initialState,
   reducers: {
-    clearTicketsByBooking(state, action: PayloadAction<number>) {
-      delete state.itemsByBooking[action.payload];
+    clearTicketError(state) {
+      state.error = null;
+    },
+    resetTickets(state) {
+      state.items = [];
+      state.loading = false;
+      state.updating = false;
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
-    builder
-      // fetchTicketsByBooking
-      .addCase(fetchTicketsByBooking.pending, (s) => {
-        s.loading = true;
-        s.error = null;
-      })
-      .addCase(fetchTicketsByBooking.fulfilled, (s, a) => {
-        s.loading = false;
-        // biết bookingId từ payload? -> lấy từ items nếu có, hoặc suy luận từ first item.
-        const list = a.payload ?? [];
-        if (list.length > 0) {
-          const bookingId = list[0].bookingId;
-          s.itemsByBooking[bookingId] = list;
-        }
-      })
-      .addCase(fetchTicketsByBooking.rejected, (s, a) => {
-        s.loading = false;
-        s.error = (a.payload as string) ?? a.error.message ?? "Fetch tickets failed";
-      })
+    // fetchAll
+    builder.addCase(fetchTickets.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchTickets.fulfilled, (state, action: PayloadAction<Ticket[]>) => {
+      state.loading = false;
+      state.items = action.payload;
+    });
+    builder.addCase(fetchTickets.rejected, (state, action) => {
+      state.loading = false;
+      state.error = (action.payload as string) ?? "Fetch tickets failed";
+    });
 
-      // issueTicketsForBooking
-      .addCase(issueTicketsForBooking.pending, (s) => {
-        s.creating = true;
-        s.error = null;
-      })
-      .addCase(issueTicketsForBooking.fulfilled, (s, a) => {
-        s.creating = false;
-        const created = a.payload ?? [];
-        if (created.length > 0) {
-          const bookingId = created[0].bookingId;
-          const existed = s.itemsByBooking[bookingId] ?? [];
-          s.itemsByBooking[bookingId] = [...created, ...existed];
-        }
-      })
-      .addCase(issueTicketsForBooking.rejected, (s, a) => {
-        s.creating = false;
-        s.error = (a.payload as string) ?? a.error.message ?? "Issue tickets failed";
-      });
+    // fetchByBooking
+    builder.addCase(fetchTicketsByBooking.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchTicketsByBooking.fulfilled, (state, action: PayloadAction<Ticket[]>) => {
+      state.loading = false;
+      state.items = action.payload;
+    });
+    builder.addCase(fetchTicketsByBooking.rejected, (state, action) => {
+      state.loading = false;
+      state.error = (action.payload as string) ?? "Fetch tickets by booking failed";
+    });
+
+    // create
+    builder.addCase(createTicketThunk.pending, (state) => {
+      state.updating = true;
+      state.error = null;
+    });
+    builder.addCase(createTicketThunk.fulfilled, (state, action: PayloadAction<Ticket>) => {
+      state.updating = false;
+      state.items.unshift(action.payload);
+    });
+    builder.addCase(createTicketThunk.rejected, (state, action) => {
+      state.updating = false;
+      state.error = (action.payload as string) ?? "Create ticket failed";
+    });
+
+    // update
+    builder.addCase(updateTicketThunk.pending, (state) => {
+      state.updating = true;
+      state.error = null;
+    });
+    builder.addCase(updateTicketThunk.fulfilled, (state, action: PayloadAction<Ticket>) => {
+      state.updating = false;
+      const idx = state.items.findIndex((t) => t.id === action.payload.id);
+      if (idx >= 0) state.items[idx] = action.payload;
+    });
+    builder.addCase(updateTicketThunk.rejected, (state, action) => {
+      state.updating = false;
+      state.error = (action.payload as string) ?? "Update ticket failed";
+    });
   },
 });
 
-export const { clearTicketsByBooking } = ticketSlice.actions;
+export const { clearTicketError, resetTickets } = ticketSlice.actions;
 export default ticketSlice.reducer;

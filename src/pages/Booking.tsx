@@ -29,15 +29,14 @@ const Booking: React.FC = () => {
   const formRef = useRef<HTMLDivElement>(null);
 
   // Redux state
-  const shows = useSelector((s: RootState) => s.shows.items);
-  const showDefault = useSelector((s: RootState) => s.shows.selected) as { id?: number } | null;
+  const {items: shows, defaultId, loading} = useSelector((s: RootState) => s.shows);
 
   // Ticket types trong slice nên load theo showId (thunk fetchTicketTypes(showId))
   const types = useSelector((s: RootState) => s.ticketTypes.items);
   const loadingTypes = useSelector((s: RootState) => s.ticketTypes.loading);
 
   // local state
-  const selectedShowId = showDefault?.id ?? null;
+  const selectedShowId = defaultId ?? (shows.length > 0 ? shows[0].id! : null);
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     customerName: "",
@@ -52,15 +51,10 @@ const Booking: React.FC = () => {
 
   // 2) Chọn show mặc định (từ Redux) -> nếu không có, lấy show đầu tiên khi shows có dữ liệu
   useEffect(() => {
-    const idFromDefault = showDefault?.id;
-    if (idFromDefault && idFromDefault !== selectedShowId) {
-      setSelectedShowId(idFromDefault);
-      return;
-    }
-    if (!idFromDefault && shows.length > 0 && !selectedShowId) {
-      setSelectedShowId(shows[0].id!);
-    }
-  }, [showDefault, shows, selectedShowId]);
+    if (selectedShowId == null) return;
+    dispatch(fetchByShowId(selectedShowId));
+    setSelectedTypeId(null); // reset lựa chọn khi đổi show (giữ lại dòng này)
+  }, [selectedShowId, dispatch]);
 
   // 3) Mỗi khi selectedShowId đổi -> fetch ticket types theo show đó + reset loại vé đang chọn
   useEffect(() => {
@@ -72,10 +66,7 @@ const Booking: React.FC = () => {
 
   // 4) Lọc types theo selectedShowId (nếu slice đã chỉ trả về types của show hiện tại, đoạn này vẫn ok)
   const filteredTypes = useMemo(() => {
-    if (!selectedShowId) return [];
-    // Nếu slice đã chỉ chứa types của show hiện tại thì thực ra filter này không cần,
-    // nhưng để an toàn ta vẫn filter theo showId.
-    return types.filter((t) => t.showId === selectedShowId);
+    return selectedShowId ? types.filter(t => t.showId === selectedShowId) : [];
   }, [types, selectedShowId]);
 
   const selectedType = useMemo(
@@ -203,13 +194,11 @@ const Booking: React.FC = () => {
             return (
               <div
                 key={tt.id}
-                className={`relative bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border transition-all duration-300 transform hover:scale-105 ${
-                  isPopular
+                className={`relative bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border transition-all duration-300 transform hover:scale-105 ${isPopular
                     ? "border-yellow-500 shadow-lg shadow-yellow-500/25"
                     : "border-gray-600 hover:border-yellow-500/50"
-                } ${active ? "ring-2 ring-yellow-500" : ""} ${
-                  outOfStock ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
-                }`}
+                  } ${active ? "ring-2 ring-yellow-500" : ""} ${outOfStock ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                  }`}
                 onClick={() => !outOfStock && handleTypeSelect(tt.id!)}
               >
                 {isPopular && (
@@ -231,9 +220,8 @@ const Booking: React.FC = () => {
                   <div className="mt-2 text-sm text-gray-300">
                     Còn lại:{" "}
                     <span
-                      className={`font-semibold ${
-                        remain === 0 ? "text-red-400" : "text-green-400"
-                      }`}
+                      className={`font-semibold ${remain === 0 ? "text-red-400" : "text-green-400"
+                        }`}
                     >
                       {remain}
                     </span>
@@ -254,13 +242,12 @@ const Booking: React.FC = () => {
                 </ul>
 
                 <button
-                  className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
-                    outOfStock
+                  className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${outOfStock
                       ? "bg-gray-600 text-white cursor-not-allowed"
                       : active
-                      ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
-                      : "bg-gray-700 hover:bg-gray-600 text-white"
-                  }`}
+                        ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
+                        : "bg-gray-700 hover:bg-gray-600 text-white"
+                    }`}
                   disabled={outOfStock}
                 >
                   {outOfStock ? "Hết vé" : active ? "Đang chọn" : "Chọn gói này"}
@@ -350,11 +337,10 @@ const Booking: React.FC = () => {
               <button
                 type="submit"
                 disabled={!selectedType}
-                className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${
-                  selectedType
+                className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${selectedType
                     ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
                     : "bg-gray-600 text-white cursor-not-allowed"
-                }`}
+                  }`}
               >
                 Đặt vé ngay
               </button>

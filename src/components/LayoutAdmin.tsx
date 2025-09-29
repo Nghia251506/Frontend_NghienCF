@@ -32,7 +32,7 @@ const items: MenuItem[] = [
   getItem('Thống kê', 'dashboard', <PieChartOutlined />),
   getItem('Quản lý show', 'show', <FaMusic />, [
     getItem('Danh sách combo', 'listtype'),
-    getItem('Show', 'addshow'),
+    getItem('Thêm show diễn', 'addshow'),
     getItem('Danh sách đặt', 'listorder'),
     getItem('Danh sách show diễn', 'listshow'),
     getItem('Danh sách vé đã đặt', 'listticket'),

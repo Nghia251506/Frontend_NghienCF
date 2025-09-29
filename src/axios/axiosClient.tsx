@@ -1,34 +1,35 @@
 // src/api/axiosClient.ts
-import axios from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL, // đổi thành URL backend của bạn
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true, // nếu backend có cookie/session
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
 });
 
-// Interceptor cho request
-axiosClient.interceptors.request.use(
-  (config) => {
-    // ví dụ thêm token vào header
-    const token = sessionStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Interceptor cho response
-axiosClient.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    console.error(error);
-    return Promise.reject(error);
+// request interceptor
+axiosClient.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem("token");
+  if (token) {
+    // Header kiểu AxiosHeaders có set()
+    config.headers = config.headers ?? {};
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
+  return config;
+});
+
+// response interceptor -> luôn trả .data
+axiosClient.interceptors.response.use(
+  (res) => res.data,
+  (err) => Promise.reject(err)
 );
 
-export default axiosClient;
+// 👉 Khai báo lại kiểu để .get/.post trả Promise<T> (không phải AxiosResponse<T>)
+type DataReturningAxios = {
+  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+} & AxiosInstance;
+
+export default axiosClient as DataReturningAxios;

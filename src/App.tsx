@@ -16,6 +16,7 @@ import AddShow from './pages/AddShow';
 import ListShow from './pages/ListShow';
 import ListOrder from './pages/ListOrder';
 import ListType from './pages/ListType';
+import TicketAdmin from './pages/TicketAdmin';
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
             <Route path='listshow' element={<ListShow/>}/>
             <Route path='listorder' element={<ListOrder/>}/>
             <Route path='listtype' element={<ListType/>}/>
+            <Route path='listticket' element={<TicketAdmin/>}/>
           </Route>
 
         </Routes>

@@ -5,15 +5,15 @@ export interface Show{
     date: Date;
     location: string;
     bannerUrl: string;
-    capacity: string;
+    capacity: number;
     slogan: string;
 }
 export interface ShowCreateDto{
     title: string;
     description: string;
-    date: Date;
+    date: string;
     location: string;
     bannerUrl: string;
-    capacity: string;
+    capacity: number;
     slogan: string;
 }

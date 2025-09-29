@@ -21,6 +21,7 @@ const Home: React.FC = () => {
     const byDefault = defaultId != null ? shows.find(s => s.id === defaultId) : null;
     return byDefault ?? shows[0] ?? null;
   }, [shows, defaultId]);
+  console.log("ShowId: ", defaultId)
 
   const backgroundUrl =
     currentShow?.bannerUrl && currentShow.bannerUrl.trim() !== ""
