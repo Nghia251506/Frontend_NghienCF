@@ -4,8 +4,8 @@ export interface Show{
     description: string;
     date: Date;
     location: string;
-    bannerUrl: string;
-    capacity: number;
+    bannerUrl?: string;
+    capacity: string;
     slogan: string;
 }
 export interface ShowCreateDto{

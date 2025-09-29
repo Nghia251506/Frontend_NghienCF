@@ -1,3 +1,4 @@
+// src/pages/AddShow.tsx
 import React, { useState } from "react";
 import { Form, Input, DatePicker, InputNumber, Button, Card, Upload } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
@@ -17,54 +18,83 @@ const AddShow: React.FC = () => {
 
   const onFinish = async (values: any) => {
     try {
-      // 1) Chuẩn hóa date -> ISO có timezone địa phương (VD +07:00)
-      const dateIso: string = dayjs(values.date).format("YYYY-MM-DDTHH:mm:ssZ");
+      // 1) Chuẩn hoá ngày giờ -> ISO (an toàn cho ASP.NET)
+      // Antd DatePicker trả về Dayjs; dùng toDate().toISOString()
+      const dateIso = dayjs(values.date).format("YYYY-MM-DDTHH:mm:ssZ");
 
-      // 2) Upload ảnh (nếu có)
-      let bannerUrl = "";
+      // 2) Upload ảnh nếu có -> nhận về URL
+      let bannerUrl: string | undefined;
       if (fileList[0]?.originFileObj) {
-        bannerUrl = await uploadImage(fileList[0].originFileObj as File);
+        const url = await uploadImage(fileList[0].originFileObj as File);
+        if (typeof url !== "string" || !url.trim()) {
+          throw new Error("Upload ảnh thất bại hoặc trả về URL không hợp lệ.");
+        }
+        bannerUrl = url.trim();
       }
 
-      // 3) Build payload đúng kiểu
-      const payload: ShowCreateDto = {
+      // 3) Tạo payload đúng kiểu; KHÔNG gửi bannerUrl nếu không có
+      const payload: Partial<ShowCreateDto> = {
         title: (values.title || "").trim(),
         description: (values.description || "").trim(),
-        date: dateIso,                              // <-- string ISO
+        date: dateIso, // string ISO
         location: (values.location || "").trim(),
-        bannerUrl,                                  // <-- string
-        capacity: Number(values.capacity) || 0,     // <-- number
+        capacity: values.capacity || "",
         slogan: (values.slogan || "").trim(),
+        ...(bannerUrl ? { bannerUrl } : {}),
       };
 
-      await dispatch(addShow(payload)).unwrap();
+      console.log("[AddShow] payload gửi:", payload);
+
+      await dispatch(addShow(payload as ShowCreateDto)).unwrap();
       toast.success("✅ Thêm show thành công!");
+
       form.resetFields();
       setFileList([]);
     } catch (err: any) {
-      // In chi tiết lỗi từ backend để biết vì sao 400
-      console.error("[AddShow] error:", err?.response?.data || err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.title || // ModelState error mặc định
+      // In chi tiết lỗi từ backend để xác định vì sao 400
+      const resp = err?.response?.data;
+      console.error("[AddShow] error:", resp || err);
+
+      // Ưu tiên hiện ModelState errors, sau đó message/title
+      const detail =
+        (resp?.errors && JSON.stringify(resp.errors)) ||
+        resp?.message ||
+        resp?.title ||
         "Thêm show thất bại!";
-      toast.error(msg);
+
+      toast.error(detail);
     }
   };
 
   return (
     <div className="p-6 flex justify-center">
-      <Card title="Thêm Show Diễn" className="w-full max-w-2xl shadow-lg rounded-xl">
+      <Card
+        title="Thêm Show Diễn"
+        className="w-full max-w-2xl shadow-lg rounded-xl"
+        styles={{ body: { padding: 16 } }} // dùng styles thay cho bodyStyle (antd deprecate)
+      >
         <Form layout="vertical" form={form} onFinish={onFinish}>
-          <Form.Item label="Tên Show" name="title" rules={[{ required: true, message: "Vui lòng nhập tên show!" }]}>
+          <Form.Item
+            label="Tên Show"
+            name="title"
+            rules={[{ required: true, message: "Vui lòng nhập tên show!" }]}
+          >
             <Input placeholder="Nhập tên show..." />
           </Form.Item>
 
-          <Form.Item label="Mô tả" name="description" rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}>
+          <Form.Item
+            label="Mô tả"
+            name="description"
+            rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
+          >
             <Input.TextArea rows={4} placeholder="Nhập mô tả show..." />
           </Form.Item>
 
-          <Form.Item label="Ngày & giờ diễn" name="date" rules={[{ required: true, message: "Vui lòng chọn ngày giờ!" }]}>
+          <Form.Item
+            label="Ngày & giờ diễn"
+            name="date"
+            rules={[{ required: true, message: "Vui lòng chọn ngày giờ!" }]}
+          >
             <DatePicker
               className="w-full"
               showTime={{ format: "HH:mm", minuteStep: 5 }}
@@ -72,23 +102,32 @@ const AddShow: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item label="Địa điểm" name="location" rules={[{ required: true, message: "Vui lòng nhập địa điểm!" }]}>
+          <Form.Item
+            label="Địa điểm"
+            name="location"
+            rules={[{ required: true, message: "Vui lòng nhập địa điểm!" }]}
+          >
             <Input placeholder="Nhập địa điểm tổ chức..." />
           </Form.Item>
 
-          <Form.Item label="Sức chứa (người)" name="capacity" rules={[{ required: true, message: "Vui lòng nhập sức chứa!" }]}>
-            <InputNumber min={1} className="w-full" placeholder="Nhập sức chứa" />
+          <Form.Item
+            label="Sức chứa (người)"
+            name="capacity"
+            rules={[{ required: true, message: "Vui lòng nhập sức chứa!" }]}
+          >
+            <Input className="w-full" placeholder="Nhập sức chứa" />
           </Form.Item>
 
           <Form.Item label="Slogan / Khẩu hiệu" name="slogan">
             <Input placeholder="Ví dụ: Một đêm không thể quên!" />
           </Form.Item>
 
-          {/* Ảnh bìa (upload) đưa xuống cuối như bạn muốn */}
-          <Form.Item label="Ảnh bìa">
+          {/* Ảnh bìa (tùy chọn). 
+              Nếu server bắt buộc ảnh, thêm rules={[{ required: true, message: "Vui lòng chọn ảnh bìa!" }]} */}
+          <Form.Item label="Ảnh bìa" valuePropName="fileList">
             <Upload
               fileList={fileList}
-              beforeUpload={() => false} // ngăn antd upload tự động
+              beforeUpload={() => false} // không upload tự động
               maxCount={1}
               onChange={({ fileList }) => setFileList(fileList)}
               accept="image/*"
