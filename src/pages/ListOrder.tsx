@@ -162,8 +162,9 @@ const ListOrder: React.FC = () => {
       width: 150,
       render: (v: string) => v || "-",
     },
-    { title: "Show ID", dataIndex: "showId", width: 100, align: "center" },
-    { title: "Loại vé", dataIndex: "ticketTypeId", width: 100, align: "center" },
+    { title: "Show", dataIndex: "title", width: 100, align: "center" },
+    { title: "Loại vé", dataIndex: "name", width: 100, align: "center" },
+    { title: "Màu vé", dataIndex: "color", width: 100, align: "center" },
     { title: "Số lượng", dataIndex: "quantity", width: 100, align: "center" },
     {
       title: "Tổng tiền",
