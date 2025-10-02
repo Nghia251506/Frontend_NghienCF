@@ -99,6 +99,14 @@ const ListOrder: React.FC = () => {
       return name.includes(q);
     });
   }, [term, bookings]);
+  const rows = useMemo(() => {
+    return filteredData.map((b) => ({
+      ...b,
+      _showTitle: b.show?.title ?? b.showTitle ?? "",
+      _ticketTypeName: b.ticketType?.name ?? b.ticketTypeName ?? "",
+      _ticketColor: b.ticketType?.color ?? b.ticketTypeColor ?? "",
+    }));
+  }, [filteredData]);
 
   // Validate input tìm kiếm
   const validateQuery = (_: any, value: string) => {
@@ -146,46 +154,94 @@ const ListOrder: React.FC = () => {
     return <Tag color="blue">pending</Tag>;
   };
 
-  const columns: ColumnsType<Booking> = [
-    {
-      title: "STT",
-      dataIndex: "stt",
-      width: 80,
-      align: "center",
-      render: (_: any, __: Booking, index: number) =>
-        (currentPage - 1) * PAGE_SIZE + index + 1,
-    },
-    { title: "Tên khách", dataIndex: "customerName", ellipsis: true },
-    {
-      title: "Số điện thoại",
-      dataIndex: "phone",
-      width: 150,
-      render: (v: string) => v || "-",
-    },
-    { title: "Show", dataIndex: "title", width: 100, align: "center" },
-    { title: "Loại vé", dataIndex: "name", width: 100, align: "center" },
-    { title: "Màu vé", dataIndex: "color", width: 100, align: "center" },
-    { title: "Số lượng", dataIndex: "quantity", width: 100, align: "center" },
-    {
-      title: "Tổng tiền",
-      dataIndex: "totalAmount",
-      width: 160,
-      render: (v: number) => <span className="font-medium">{toVnd(v)}</span>,
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "paymentStatus",
-      width: 130,
-      render: (v: string) => statusTag(v),
-    },
-    {
-      title: "Thanh toán lúc",
-      dataIndex: "paymentTime",
-      width: 190,
-      render: (v: Date) =>
-        v ? dayjs(v).format("DD/MM/YYYY HH:mm") : <span className="text-gray-400">-</span>,
-    },
-  ];
+  const columns: ColumnsType<Booking & {
+    _showTitle?: string;
+    _ticketTypeName?: string;
+    _ticketColor?: string;
+  }> = [
+      {
+        title: "STT",
+        dataIndex: "stt",
+        width: 80,
+        align: "center",
+        render: (_: any, __: Booking, index: number) =>
+          (currentPage - 1) * PAGE_SIZE + index + 1,
+      },
+      { title: "Tên khách", dataIndex: "customerName", ellipsis: true },
+      {
+        title: "Số điện thoại",
+        dataIndex: "phone",
+        width: 150,
+        render: (v: string) => v || "-",
+      },
+
+      // ✅ Sửa ở đây
+      {
+        title: "Show",
+        dataIndex: "_showTitle",
+        width: 160,
+        align: "center",
+        render: (_: any, b) => b._showTitle || "-",
+      },
+      {
+        title: "Loại vé",
+        dataIndex: "_ticketTypeName",
+        width: 140,
+        align: "center",
+        render: (_: any, b) => b._ticketTypeName || "-",
+      },
+      {
+        title: "Màu vé",
+        dataIndex: "_ticketColor",
+        width: 140,
+        align: "center",
+        render: (_: any, b) => {
+          const color = (b._ticketColor || "").toLowerCase(); // ví dụ: "Red" -> "red"
+          return b._ticketColor ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 999,
+                  border: "1px solid #ddd",
+                  background:
+                    /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) || /(rgb|hsl)/i.test(color)
+                      ? color
+                      : // map vài màu tên quen thuộc
+                      ({ red: "#ef4444", gold: "#f59e0b", silver: "#c0c0c0" } as any)[color] ||
+                      color || "#999",
+                }}
+              />
+              <span>{b._ticketColor}</span>
+            </span>
+          ) : (
+            "-"
+          );
+        },
+      },
+
+      { title: "Số lượng", dataIndex: "quantity", width: 100, align: "center" },
+      {
+        title: "Tổng tiền",
+        dataIndex: "totalAmount",
+        width: 160,
+        render: (v: number) => <span className="font-medium">{toVnd(v)}</span>,
+      },
+      {
+        title: "Trạng thái",
+        dataIndex: "paymentStatus",
+        width: 130,
+        render: (v: string) => statusTag(v),
+      },
+      {
+        title: "Thanh toán lúc",
+        dataIndex: "paymentTime",
+        width: 190,
+        render: (v: Date) =>
+          v ? dayjs(v).format("DD/MM/YYYY HH:mm") : <span className="text-gray-400">-</span>,
+      },
+    ];
 
   const handleTableChange = (p: TablePaginationConfig) => {
     setCurrentPage(p.current ?? 1);
@@ -238,10 +294,10 @@ const ListOrder: React.FC = () => {
           </Form.Item>
         </Form>
 
-        <Table<Booking>
+        <Table
           rowKey="id"
           loading={loading}
-          dataSource={filteredData}
+          dataSource={rows}               // ✅ dùng rows đã chuẩn hoá
           columns={columns}
           onChange={handleTableChange}
           pagination={{ current: currentPage, pageSize: PAGE_SIZE, showSizeChanger: false }}

@@ -1,22 +1,30 @@
-export interface Booking{
-    id: number;
-    showId: number;
-    ticketTypeId: number;
-    customerName: string;
-    phone: string;
-    quantity: number;
-    totalAmount: number;
-    paymentStatus: string;
-    paymentTime: string | null;
-    createdAt: string | null;
+export interface Booking {
+  id: number;
+  showId: number;
+  ticketTypeId: number;
+  customerName: string;
+  phone: string;
+  quantity: number;
+  totalAmount: number;
+  paymentStatus: string;
+  paymentTime: string | null;
+  createdAt: string | null;
+  // nested (nếu API include)
+  show?: { id: number; title: string };
+  ticketType?: { id: number; name: string; color?: string };
+
+  // flattened (nếu API đã join)
+  showTitle?: string;
+  ticketTypeName?: string;
+  ticketTypeColor?: string;
 }
 
-export interface BookingDto{
-    showId?: number;
-    customerName: string;
-    phone: string;
-    ticketTypeId: number;
-    quantity: number;
+export interface BookingDto {
+  showId?: number;
+  customerName: string;
+  phone: string;
+  ticketTypeId: number;
+  quantity: number;
 }
 export type CreateBookingDto = {
   showId: number;
@@ -27,7 +35,7 @@ export type CreateBookingDto = {
 };
 
 export type BookingResponseDto = {
-    showId: number;
+  showId: number;
   ticketTypeId: number;
   customerName: string;
   phone: string;
