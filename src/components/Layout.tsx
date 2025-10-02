@@ -43,17 +43,6 @@ const Layout: React.FC = () => {
                 <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden xs:inline">Đặt vé</span>
               </Link>
-              <Link
-                to="/login"
-                className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg transition-colors text-sm sm:text-base ${
-                  isActive('/') 
-                    ? 'bg-yellow-500/20 text-yellow-400' 
-                    : 'text-gray-300 hover:text-yellow-400 hover:bg-gray-800/50'
-                }`}
-              >
-                <IoMdLogIn className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Admin đăng nhập</span>
-              </Link>
             </div>
           </div>
         </div>
