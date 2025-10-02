@@ -72,7 +72,7 @@ const LayoutAdmin: React.FC = () => {
             {/* Welcome user */}
             {!collapsed && (
               <div style={{ color: "white", padding: 16 }}>
-                Welcome, <b>ntn8530</b>
+                Welcome, <b>Admin</b>
               </div>
             )}
             <Menu
