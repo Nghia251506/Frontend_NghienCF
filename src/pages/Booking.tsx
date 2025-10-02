@@ -18,9 +18,11 @@ type BookingDataForContext = {
   seatNumbers?: string[];
   bookingId?: number;
   paymentQrUrl?: string;
-  paymentQrImage?: string;   // thêm để Payment dùng nếu backend trả ảnh base64
-  paymentQrString?: string;  // thêm để Payment tự render ảnh từ chuỗi 000201...
+  paymentQrImage?: string;
+  paymentQrString?: string;
 };
+
+const POLL_MS = 15000; // 15s: đủ nhẹ, vẫn bắt kịp job hoàn vé
 
 const Booking: React.FC = () => {
   const navigate = useNavigate();
@@ -29,45 +31,59 @@ const Booking: React.FC = () => {
   const formRef = useRef<HTMLDivElement>(null);
 
   // Redux state
-  const {items: shows, defaultId, loading} = useSelector((s: RootState) => s.shows);
-
-  // Ticket types trong slice nên load theo showId (thunk fetchTicketTypes(showId))
+  const { items: shows, defaultId } = useSelector((s: RootState) => s.shows);
   const types = useSelector((s: RootState) => s.ticketTypes.items);
   const loadingTypes = useSelector((s: RootState) => s.ticketTypes.loading);
 
   // local state
   const selectedShowId = defaultId ?? (shows.length > 0 ? shows[0].id! : null);
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    customerName: "",
-    phone: "",
-    quantity: 1,
-  });
+  const [formData, setFormData] = useState({ customerName: "", phone: "", quantity: 1 });
 
-  // 1) Tải danh sách show
+  // 1) Tải danh sách show lần đầu
   useEffect(() => {
     dispatch(fetchShows());
   }, [dispatch]);
 
-  // 2) Chọn show mặc định (từ Redux) -> nếu không có, lấy show đầu tiên khi shows có dữ liệu
+  // 2) Mỗi khi đã có selectedShowId -> load ticket types + bật polling + refresh khi tab focus
   useEffect(() => {
     if (selectedShowId == null) return;
+
+    // fetch ngay
     dispatch(fetchByShowId(selectedShowId));
-    setSelectedTypeId(null); // reset lựa chọn khi đổi show (giữ lại dòng này)
+    setSelectedTypeId(null);
+
+    // polling định kỳ
+    const poll = window.setInterval(() => {
+      dispatch(fetchByShowId(selectedShowId));
+    }, POLL_MS);
+
+    // refresh khi tab quay lại (visibilitychange + focus)
+    const onFocus = () => dispatch(fetchByShowId(selectedShowId));
+    const onVisible = () => {
+      if (document.visibilityState === "visible") dispatch(fetchByShowId(selectedShowId));
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.clearInterval(poll);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [selectedShowId, dispatch]);
 
-  // 3) Mỗi khi selectedShowId đổi -> fetch ticket types theo show đó + reset loại vé đang chọn
-  useEffect(() => {
-    if (selectedShowId == null) return;
-    // thunk nên nhận showId, ví dụ: fetchTicketTypes(selectedShowId)
-    dispatch(fetchByShowId(selectedShowId));
-    setSelectedTypeId(null); // reset chọn loại vé khi đổi show
-  }, [selectedShowId, dispatch]);
-
-  // 4) Lọc types theo selectedShowId (nếu slice đã chỉ trả về types của show hiện tại, đoạn này vẫn ok)
+  // 3) Lọc types theo show
   const filteredTypes = useMemo(() => {
-    return selectedShowId ? types.filter(t => t.showId === selectedShowId) : [];
+    return selectedShowId ? types.filter((t) => t.showId === selectedShowId) : [];
   }, [types, selectedShowId]);
+
+  // Nếu loại vé đang chọn không còn trong danh sách (vd sold out/ẩn), reset chọn
+  useEffect(() => {
+    if (selectedTypeId && !filteredTypes.some((t) => t.id === selectedTypeId)) {
+      setSelectedTypeId(null);
+    }
+  }, [filteredTypes, selectedTypeId]);
 
   const selectedType = useMemo(
     () => filteredTypes.find((t) => t.id === selectedTypeId) || null,
@@ -78,7 +94,7 @@ const Booking: React.FC = () => {
     if (!selectedType) return 0;
     return typeof selectedType.remainingQuantity === "number"
       ? selectedType.remainingQuantity
-      : (selectedType.totalQuantity ?? 0);
+      : selectedType.totalQuantity ?? 0;
   }, [selectedType]);
 
   const totalPrice = selectedType ? selectedType.price * formData.quantity : 0;
@@ -86,7 +102,7 @@ const Booking: React.FC = () => {
   const handleTypeSelect = (typeId: number) => {
     const t = filteredTypes.find((x) => x.id === typeId);
     if (!t) return;
-    const remain = (t.remainingQuantity ?? t.totalQuantity ?? 0);
+    const remain = t.remainingQuantity ?? t.totalQuantity ?? 0;
     if (remain <= 0) {
       toast.warn("Loại vé này đã hết.");
       return;
@@ -118,8 +134,21 @@ const Booking: React.FC = () => {
       toast.error("Số lượng phải > 0");
       return;
     }
-    if (formData.quantity > remaining) {
-      toast.error(`Chỉ còn ${remaining} vé cho loại này`);
+
+    // ✅ Quan trọng: Re-validate tồn kho mới nhất trước khi tạo booking
+    try {
+      const latestList = await dispatch(fetchByShowId(selectedShowId)).unwrap();
+      const latestSelected = latestList.find((t: any) => t.id === selectedType.id);
+      const latestRemain =
+        (latestSelected?.remainingQuantity ?? latestSelected?.totalQuantity ?? 0) as number;
+
+      if (formData.quantity > latestRemain) {
+        toast.error(`Hiện chỉ còn ${latestRemain} vé cho loại này (vừa có thay đổi).`);
+        return;
+      }
+    } catch {
+      // nếu fetch lỗi tạm thời, vẫn dừng để tránh overbook
+      toast.error("Không kiểm tra được tồn kho. Vui lòng thử lại.");
       return;
     }
 
@@ -132,11 +161,8 @@ const Booking: React.FC = () => {
         quantity: formData.quantity,
       };
 
-      console.log("📤 [BOOKING/SEND] DTO:", dto);
-      const res = await dispatch(createBooking(dto)).unwrap(); // BookingResponseDto
-      console.log("✅ [BOOKING/RECV] Response:", res);
+      const res = await dispatch(createBooking(dto)).unwrap();
 
-      // Lưu vào context để Payment dùng
       setBookingData({
         customerName: formData.customerName.trim(),
         phone: formData.phone.trim(),
@@ -145,22 +171,14 @@ const Booking: React.FC = () => {
         totalPrice: res.totalAmount,
         bookingId: res.bookingId,
         paymentQrUrl: res.paymentQrUrl,
-        paymentQrImage: res.paymentQrImage,     // nếu backend trả
-        paymentQrString: res.paymentQrString,   // nếu backend trả
+        paymentQrImage: res.paymentQrImage,
+        paymentQrString: res.paymentQrString,
       } as BookingDataForContext);
 
-      // Sau khi tạo booking, điều hướng sang trang thanh toán
       navigate("/payment");
-
-      // (Tuỳ chọn) Nếu bạn muốn quay lại trang này thì mới cần refresh tồn kho:
-      // dispatch(fetchTicketTypes(selectedShowId));
-
     } catch (err: any) {
-      console.log("❌ [BOOKING/ERR]:", err?.response?.data ?? err);
       const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Tạo đơn thất bại. Vui lòng thử lại.";
+        err?.response?.data?.message || err?.message || "Tạo đơn thất bại. Vui lòng thử lại.";
       toast.error(msg);
     }
   };
@@ -173,12 +191,10 @@ const Booking: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
             Chọn gói vé của bạn
           </h1>
-          <p className="text-gray-400 text-base sm:text-lg">
-            Lựa chọn trải nghiệm phù hợp nhất
-          </p>
+          <p className="text-gray-400 text-base sm:text-lg">Lựa chọn trải nghiệm phù hợp nhất</p>
         </div>
 
-        {/* Ô chọn show đã ẨN – nhưng vẫn fill showId qua input hidden để tránh lỗi form/validator */}
+        {/* Ô chọn show đã ẨN – nhưng vẫn fill showId qua input hidden */}
         <form style={{ display: "none" }}>
           <input type="hidden" name="showId" value={selectedShowId ?? ""} readOnly />
         </form>
@@ -187,18 +203,20 @@ const Booking: React.FC = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
           {filteredTypes.map((tt) => {
             const isPopular = false;
-            const remain = (tt.remainingQuantity ?? tt.totalQuantity ?? 0);
+            const remain = tt.remainingQuantity ?? tt.totalQuantity ?? 0;
             const outOfStock = remain <= 0;
             const active = selectedTypeId === tt.id;
 
             return (
               <div
                 key={tt.id}
-                className={`relative bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border transition-all duration-300 transform hover:scale-105 ${isPopular
+                className={`relative bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border transition-all duration-300 transform hover:scale-105 ${
+                  isPopular
                     ? "border-yellow-500 shadow-lg shadow-yellow-500/25"
                     : "border-gray-600 hover:border-yellow-500/50"
-                  } ${active ? "ring-2 ring-yellow-500" : ""} ${outOfStock ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
-                  }`}
+                } ${active ? "ring-2 ring-yellow-500" : ""} ${
+                  outOfStock ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                }`}
                 onClick={() => !outOfStock && handleTypeSelect(tt.id!)}
               >
                 {isPopular && (
@@ -211,18 +229,13 @@ const Booking: React.FC = () => {
                 )}
 
                 <div className="text-center mb-6">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
-                    {tt.name}
-                  </h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">{tt.name}</h3>
                   <div className="text-2xl sm:text-3xl font-bold text-yellow-400">
                     {tt.price.toLocaleString("vi-VN")}đ
                   </div>
                   <div className="mt-2 text-sm text-gray-300">
                     Còn lại:{" "}
-                    <span
-                      className={`font-semibold ${remain === 0 ? "text-red-400" : "text-green-400"
-                        }`}
-                    >
+                    <span className={`font-semibold ${remain === 0 ? "text-red-400" : "text-green-400"}`}>
                       {remain}
                     </span>
                   </div>
@@ -232,22 +245,20 @@ const Booking: React.FC = () => {
                   <li className="flex items-start text-gray-300 text-sm sm:text-base">
                     <Check className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 mr-2 sm:mr-3 flex-shrink-0 mt-0.5" />
                     Màu khu vực:{" "}
-                    <span
-                      className="inline-block ml-1 rounded px-2 py-0.5"
-                      style={{ background: tt.color, color: "#111" }}
-                    >
+                    <span className="inline-block ml-1 rounded px-2 py-0.5" style={{ background: tt.color, color: "#111" }}>
                       {tt.color}
                     </span>
                   </li>
                 </ul>
 
                 <button
-                  className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${outOfStock
+                  className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
+                    outOfStock
                       ? "bg-gray-600 text-white cursor-not-allowed"
                       : active
-                        ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
-                        : "bg-gray-700 hover:bg-gray-600 text-white"
-                    }`}
+                      ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
+                      : "bg-gray-700 hover:bg-gray-600 text-white"
+                  }`}
                   disabled={outOfStock}
                 >
                   {outOfStock ? "Hết vé" : active ? "Đang chọn" : "Chọn gói này"}
@@ -266,12 +277,9 @@ const Booking: React.FC = () => {
         {/* Booking Form */}
         <div ref={formRef} className="max-w-2xl mx-auto">
           <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center">
-              Thông tin đặt vé
-            </h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center">Thông tin đặt vé</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* hidden showId để fill dữ liệu */}
               <input type="hidden" name="showId" value={selectedShowId ?? ""} readOnly />
 
               <div>
@@ -280,9 +288,7 @@ const Booking: React.FC = () => {
                   type="text"
                   required
                   value={formData.customerName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, customerName: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, customerName: e.target.value }))}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
                   placeholder="Nhập họ và tên của bạn"
                 />
@@ -294,9 +300,7 @@ const Booking: React.FC = () => {
                   type="tel"
                   required
                   value={formData.phone}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
                   placeholder="0xxx xxx xxx"
                 />
@@ -318,18 +322,14 @@ const Booking: React.FC = () => {
                   }
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
                 />
-                {selectedType && (
-                  <p className="mt-2 text-xs text-gray-400">Còn lại: {remaining} vé</p>
-                )}
+                {selectedType && <p className="mt-2 text-xs text-gray-400">Còn lại: {remaining} vé</p>}
               </div>
 
               {totalPrice > 0 && (
                 <div className="bg-gray-700/50 p-4 sm:p-6 rounded-lg border border-yellow-500/20">
                   <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-white">
                     <span>Tổng tiền:</span>
-                    <span className="text-yellow-400">
-                      {totalPrice.toLocaleString("vi-VN")}đ
-                    </span>
+                    <span className="text-yellow-400">{totalPrice.toLocaleString("vi-VN")}đ</span>
                   </div>
                 </div>
               )}
@@ -337,10 +337,11 @@ const Booking: React.FC = () => {
               <button
                 type="submit"
                 disabled={!selectedType}
-                className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${selectedType
+                className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${
+                  selectedType
                     ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
                     : "bg-gray-600 text-white cursor-not-allowed"
-                  }`}
+                }`}
               >
                 Đặt vé ngay
               </button>
