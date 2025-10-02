@@ -16,7 +16,6 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("👉 Data gửi đi:", { userName, passWord });
     // ✅ validate trước khi gọi API
     if (!userName.trim()) {
       toast.error("Vui lòng nhập tài khoản!");
