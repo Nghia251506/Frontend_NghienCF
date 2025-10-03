@@ -8,7 +8,6 @@ const USER_URL = "/user";
 //   return res.data;
 // };
 export const login = async (dto: LoginDto): Promise<AuthResponse> => {
-  console.log("👉 [UserService] Data gửi đi:", dto); // log input
 
   try {
     const res = await axiosClient.post<AuthResponse>(`${USER_URL}/login`, dto);

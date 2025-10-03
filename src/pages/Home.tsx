@@ -5,27 +5,62 @@ import { Link } from "react-router-dom";
 import { Calendar, MapPin, Users, ArrowRight } from "lucide-react";
 import { fetchShows, hydrateDefaultShow } from "../redux/ShowSlice";
 
+type ShowLike = {
+  id: number;
+  title?: string;
+  slogan?: string;
+  description?: string;
+  bannerUrl?: string;
+  location?: string;
+  date?: string | number | Date;
+  capacity?: number | string;
+  // các field dưới chỉ dùng nếu bạn đã có (sẽ null nếu chưa đổi DB)
+  locationUrl?: string;
+  locationLat?: number;
+  locationLng?: number;
+  locationPlaceId?: string;
+};
+
 const Home: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { items: shows, defaultId, loading } = useSelector((s: RootState) => s.shows);
 
   useEffect(() => {
-    // đọc defaultId từ localStorage (nếu có) và fetch danh sách
     dispatch(hydrateDefaultShow());
     dispatch(fetchShows());
   }, [dispatch]);
 
-  // chọn show mặc định (nếu có), nếu không thì lấy phần tử đầu tiên
-  const currentShow = useMemo(() => {
+  const currentShow = useMemo<ShowLike | null>(() => {
     if (!shows || shows.length === 0) return null;
-    const byDefault = defaultId != null ? shows.find(s => s.id === defaultId) : null;
-    return byDefault ?? shows[0] ?? null;
+    const byDefault = defaultId != null ? shows.find((s: any) => s.id === defaultId) : null;
+    return (byDefault ?? shows[0] ?? null) as ShowLike | null;
   }, [shows, defaultId]);
 
-  const backgroundUrl =
-    currentShow?.bannerUrl && currentShow.bannerUrl.trim() !== ""
-      ? currentShow.bannerUrl
-      : "default.jpg";
+  // Ảnh nền với fallback public/default.jpg
+  const backgroundUrl = currentShow?.bannerUrl?.trim()
+    ? currentShow.bannerUrl!
+    : "/default.jpg";
+
+  // Link Google Maps: ưu tiên locationUrl -> lat,lng -> address text
+  const mapsLink = useMemo(() => {
+    if (!currentShow) return null;
+
+    if (currentShow.locationUrl) return currentShow.locationUrl;
+
+    if (
+      typeof currentShow.locationLat === "number" &&
+      typeof currentShow.locationLng === "number"
+    ) {
+      return `https://www.google.com/maps/search/?api=1&query=${currentShow.locationLat},${currentShow.locationLng}`;
+    }
+
+    if (currentShow.location?.trim()) {
+      const q = encodeURIComponent(currentShow.location);
+      return `https://www.google.com/maps/search/?api=1&query=${q}`;
+    }
+
+    return null;
+  }, [currentShow]);
 
   return (
     <div className="relative">
@@ -78,6 +113,7 @@ const Home: React.FC = () => {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
+            {/* Thời gian */}
             <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-colors">
               <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-400 mb-4" />
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Thời gian</h3>
@@ -94,21 +130,37 @@ const Home: React.FC = () => {
               </p>
             </div>
 
+            {/* Địa điểm (có link Google Maps) */}
             <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-colors">
               <MapPin className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-400 mb-4" />
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Địa điểm</h3>
-              <p className="text-gray-300 text-sm sm:text-base">
-                {currentShow?.location ?? "Đang cập nhật"}
-              </p>
+              {currentShow?.location ? (
+                mapsLink ? (
+                  <a
+                    href={mapsLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 underline underline-offset-4 text-sm sm:text-base"
+                    title="Mở trên Google Maps"
+                  >
+                    {currentShow.location}
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <p className="text-gray-300 text-sm sm:text-base">{currentShow.location}</p>
+                )
+              ) : (
+                <p className="text-gray-300 text-sm sm:text-base">Đang cập nhật</p>
+              )}
             </div>
 
+            {/* Sức chứa */}
             <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-colors sm:col-span-2 lg:col-span-1">
               <Users className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-400 mb-4" />
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Sức chứa</h3>
               <p className="text-gray-300 text-sm sm:text-base">
                 {(currentShow?.capacity ?? "Đang cập nhật") + (currentShow ? " ghế" : "")}
               </p>
-              <p className="text-gray-400 text-sm">Còn lại: 1,247 vé</p>
             </div>
           </div>
         </div>
