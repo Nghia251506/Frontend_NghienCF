@@ -17,8 +17,19 @@ import ListShow from './pages/ListShow';
 import ListOrder from './pages/ListOrder';
 import ListType from './pages/ListType';
 import TicketAdmin from './pages/TicketAdmin';
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchTheme } from "./redux/ThemeSlice";
+import { applyTheme } from "./utils/applyTheme";
+import type { RootState, AppDispatch } from "./redux/store";
 
-function App() {
+export default function App() {
+  const dispatch = useDispatch<AppDispatch>();
+  const theme = useSelector((s: RootState) => s.theme.current);
+
+  useEffect(() => { dispatch(fetchTheme()); }, [dispatch]);
+  useEffect(() => { if (theme) applyTheme(theme); }, [theme]);
+
   return (
     <BookingProvider>
       <Router>
@@ -53,5 +64,3 @@ function App() {
     </BookingProvider>
   );
 }
-
-export default App;
