@@ -1,4 +1,3 @@
-// src/pages/ListOrder.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
@@ -11,6 +10,7 @@ import {
   Tag,
   Space,
   Typography,
+  Grid,
 } from "antd";
 import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -20,13 +20,21 @@ import { RootState, AppDispatch } from "../redux/store";
 import { fetchBookings } from "../redux/BookingSlice";
 import type { Booking } from "../types/Booking";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 const PAGE_SIZE = 10;
 const POLL_MS = 6000; // poll 6s/lần để phát hiện order mới
 
+type Row = Booking & {
+  _showTitle?: string;
+  _ticketTypeName?: string;
+  _ticketColor?: string;
+};
+
 const ListOrder: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const screens = useBreakpoint();
   const { items: bookings, loading } = useSelector((s: RootState) => s.bookings);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -41,7 +49,6 @@ const ListOrder: React.FC = () => {
     const init = async () => {
       try {
         const first = await dispatch(fetchBookings()).unwrap();
-        // seed tập id đã thấy
         const s = new Set<number>();
         first?.forEach((b: Booking) => s.add(b.id));
         seenIdsRef.current = s;
@@ -69,10 +76,9 @@ const ListOrder: React.FC = () => {
           toast.success(`🆕 Có ${newOnes.length} đơn hàng mới!`);
         }
 
-        // cập nhật tập id đã thấy
         newOnes.forEach((b) => seen.add(b.id));
-      } catch (e) {
-        // im lặng nếu lỗi tạm thời
+      } catch {
+        /* im lặng nếu lỗi tạm thời */
       }
     }, POLL_MS);
 
@@ -99,7 +105,8 @@ const ListOrder: React.FC = () => {
       return name.includes(q);
     });
   }, [term, bookings]);
-  const rows = useMemo(() => {
+
+  const rows: Row[] = useMemo(() => {
     return filteredData.map((b) => ({
       ...b,
       _showTitle: b.show?.title ?? b.showTitle ?? "",
@@ -131,7 +138,7 @@ const ListOrder: React.FC = () => {
       setCurrentPage(1);
       toast.info("Đang lọc kết quả…");
     } catch {
-      // lỗi đã hiển thị ở FormItem
+      /* lỗi đã hiển thị ở FormItem */
     }
   };
 
@@ -154,49 +161,116 @@ const ListOrder: React.FC = () => {
     return <Tag color="blue">pending</Tag>;
   };
 
-  const columns: ColumnsType<Booking & {
-    _showTitle?: string;
-    _ticketTypeName?: string;
-    _ticketColor?: string;
-  }> = [
+  // ========== Columns (responsive)
+  const columns: ColumnsType<Row> = useMemo(
+    () => [
+      // Cột gộp cho mobile
+      {
+        title: "Thông tin",
+        dataIndex: "info",
+        responsive: ["xs"],
+        render: (_: any, b: Row, index) => (
+          <div className="min-w-[280px]">
+            <div className="flex items-center justify-between">
+              <Text strong>#{b.id} • {b.customerName}</Text>
+              <span className="text-[12px] text-gray-400">{dayjs(b.createdAt ?? b.paymentTime ?? b.date).format("DD/MM HH:mm")}</span>
+            </div>
+
+            <div className="mt-1 grid grid-cols-1 gap-1 text-[13px] text-gray-300">
+              <div>
+                <span className="text-gray-400">SĐT:</span>{" "}
+                <b>{b.phone || "-"}</b>
+              </div>
+              <div className="truncate">
+                <span className="text-gray-400">Show:</span>{" "}
+                <span title={b._showTitle || "-"}>{b._showTitle || "-"}</span>
+              </div>
+              <div className="truncate">
+                <span className="text-gray-400">Loại vé:</span>{" "}
+                <b>{b._ticketTypeName || "-"}</b>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Màu:</span>
+                {b._ticketColor ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      style={{
+                        width: 12, height: 12, borderRadius: 999,
+                        border: "1px solid #ddd",
+                        background:
+                          /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(b._ticketColor.toLowerCase()) ||
+                          /(rgb|hsl)/i.test(b._ticketColor)
+                            ? b._ticketColor
+                            : ({ red: "#ef4444", gold: "#f59e0b", silver: "#c0c0c0" } as any)[b._ticketColor.toLowerCase()] ||
+                              b._ticketColor || "#999",
+                      }}
+                    />
+                    <code>{b._ticketColor}</code>
+                  </span>
+                ) : (
+                  <span>-</span>
+                )}
+              </div>
+              <div>
+                <span className="text-gray-400">SL:</span>{" "}
+                <b>{b.quantity}</b>
+                <span className="ml-3 text-gray-400">Tổng:</span>{" "}
+                <b>{toVnd(b.totalAmount)}</b>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Trạng thái:</span> {statusTag(b.paymentStatus)}
+              </div>
+              <div>
+                <span className="text-gray-400">Thanh toán lúc:</span>{" "}
+                {b.paymentTime ? dayjs(b.paymentTime).format("DD/MM/YYYY HH:mm") : <span className="text-gray-500">-</span>}
+              </div>
+            </div>
+          </div>
+        ),
+      },
+
+      // Các cột chi tiết (desktop từ md)
       {
         title: "STT",
         dataIndex: "stt",
         width: 80,
         align: "center",
-        render: (_: any, __: Booking, index: number) =>
+        responsive: ["md"],
+        render: (_: any, __: Row, index: number) =>
           (currentPage - 1) * PAGE_SIZE + index + 1,
       },
-      { title: "Tên khách", dataIndex: "customerName", ellipsis: true },
+      { title: "Tên khách", dataIndex: "customerName", ellipsis: true, responsive: ["md"] },
       {
         title: "Số điện thoại",
         dataIndex: "phone",
         width: 150,
+        responsive: ["md"],
         render: (v: string) => v || "-",
       },
-
-      // ✅ Sửa ở đây
       {
         title: "Show",
         dataIndex: "_showTitle",
-        width: 160,
+        width: 200,
         align: "center",
+        responsive: ["md"],
         render: (_: any, b) => b._showTitle || "-",
       },
       {
         title: "Loại vé",
         dataIndex: "_ticketTypeName",
-        width: 140,
+        width: 160,
         align: "center",
+        responsive: ["md"],
         render: (_: any, b) => b._ticketTypeName || "-",
       },
       {
         title: "Màu vé",
         dataIndex: "_ticketColor",
-        width: 140,
+        width: 150,
         align: "center",
+        responsive: ["lg"],
         render: (_: any, b) => {
-          const color = (b._ticketColor || "").toLowerCase(); // ví dụ: "Red" -> "red"
+          const color = (b._ticketColor || "").toLowerCase();
           return b._ticketColor ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <span
@@ -208,9 +282,8 @@ const ListOrder: React.FC = () => {
                   background:
                     /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) || /(rgb|hsl)/i.test(color)
                       ? color
-                      : // map vài màu tên quen thuộc
-                      ({ red: "#ef4444", gold: "#f59e0b", silver: "#c0c0c0" } as any)[color] ||
-                      color || "#999",
+                      : ({ red: "#ef4444", gold: "#f59e0b", silver: "#c0c0c0" } as any)[color] ||
+                        color || "#999",
                 }}
               />
               <span>{b._ticketColor}</span>
@@ -220,39 +293,43 @@ const ListOrder: React.FC = () => {
           );
         },
       },
-
-      { title: "Số lượng", dataIndex: "quantity", width: 100, align: "center" },
+      { title: "Số lượng", dataIndex: "quantity", width: 110, align: "center", responsive: ["md"] },
       {
         title: "Tổng tiền",
         dataIndex: "totalAmount",
-        width: 160,
+        width: 170,
+        responsive: ["md"],
         render: (v: number) => <span className="font-medium">{toVnd(v)}</span>,
       },
       {
         title: "Trạng thái",
         dataIndex: "paymentStatus",
         width: 130,
+        responsive: ["md"],
         render: (v: string) => statusTag(v),
       },
       {
         title: "Thanh toán lúc",
         dataIndex: "paymentTime",
-        width: 190,
+        width: 200,
+        responsive: ["md"],
         render: (v: Date) =>
           v ? dayjs(v).format("DD/MM/YYYY HH:mm") : <span className="text-gray-400">-</span>,
       },
-    ];
+    ],
+    [currentPage]
+  );
 
   const handleTableChange = (p: TablePaginationConfig) => {
     setCurrentPage(p.current ?? 1);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-8">
+    <div className="w-full">
       <Card
-        className="w-full rounded-2xl shadow-lg mx-auto"
-        bodyStyle={{ padding: 24 }}
-        title={<Title level={3} className="!mb-0">📦 Danh sách Order</Title>}
+        className="w-full rounded-2xl border border-white/10 bg-white/5 text-white shadow-lg"
+        bodyStyle={{ padding: 16 }}
+        title={<Title level={3} className="!mb-0 text-white">📦 Danh sách Order</Title>}
       >
         {/* Search */}
         <Form
@@ -294,17 +371,20 @@ const ListOrder: React.FC = () => {
           </Form.Item>
         </Form>
 
-        <Table
-          rowKey="id"
-          loading={loading}
-          dataSource={rows}               // ✅ dùng rows đã chuẩn hoá
-          columns={columns}
-          onChange={handleTableChange}
-          pagination={{ current: currentPage, pageSize: PAGE_SIZE, showSizeChanger: false }}
-          bordered
-          size="middle"
-          className="w-full rounded-xl shadow-sm"
-        />
+        <div className="w-full overflow-x-auto">
+          <Table<Row>
+            rowKey="id"
+            loading={loading}
+            dataSource={rows}
+            columns={columns}
+            onChange={handleTableChange}
+            pagination={{ current: currentPage, pageSize: PAGE_SIZE, showSizeChanger: false }}
+            bordered
+            size={screens.md ? "middle" : "small"}
+            className="min-w-[780px] md:min-w-0 rounded-xl"
+            scroll={{ x: 780 }}
+          />
+        </div>
       </Card>
     </div>
   );
