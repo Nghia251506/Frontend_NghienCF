@@ -22,7 +22,7 @@ const hexToRgb = (hex: string) => {
 
 const setIframeTheme = (doc: Document, dto: ThemeDto) => {
   const root = doc.documentElement;
-  root.style.setProperty("--color-primary", hexToRgb(dto.primary));
+  root.style.setProperty("--color-primary", hexToRgb(dto.primaryColor));
   root.style.setProperty("--color-accent", hexToRgb(dto.accent));
   root.style.setProperty("--color-bg", hexToRgb(dto.background));
   root.style.setProperty("--color-surface", hexToRgb(dto.surface));
@@ -99,7 +99,7 @@ const DesignTheme: React.FC = () => {
     const base: ThemeDto =
       showTheme
         ? {
-            primary: showTheme.primary,
+            primaryColor: showTheme.primaryColor,
             accent: showTheme.accent,
             background: showTheme.background,
             surface: showTheme.surface,
@@ -190,7 +190,7 @@ const DesignTheme: React.FC = () => {
 
         <Form form={form} layout="vertical" onValuesChange={onValuesChange}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ColorRow name="primary" label="Primary" form={form} />
+            <ColorRow name="primaryColor" label="Primary" form={form} />
             <ColorRow name="accent" label="Accent" form={form} />
             <ColorRow name="background" label="Background" form={form} />
             <ColorRow name="surface" label="Surface (card)" form={form} />

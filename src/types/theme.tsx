@@ -4,7 +4,7 @@
 export interface ThemeSetting {
   id: number;
   showId: number | null;        // null = global
-  primary: string;              // "#RRGGBB"
+  primaryColor: string;              // "#RRGGBB"
   accent: string;
   background: string;
   surface: string;
@@ -21,7 +21,7 @@ export interface ThemeSetting {
 /** Payload tạo mới */
 export interface ThemeCreateDto {
   showId: number | null;        // null nếu là global
-  primary: string;
+  primaryColor: string;
   accent: string;
   background: string;
   surface: string;
@@ -39,7 +39,7 @@ export type ThemeUpdateDto = ThemeCreateDto;
 
 /** Theme đang áp dụng cho FE (dễ dùng để apply vào CSS vars) */
 export interface ThemeDto {
-  primary: string;
+  primaryColor: string;
   accent: string;
   background: string;
   surface: string;
@@ -69,7 +69,7 @@ export interface ThemeState {
 
 /** Mặc định an toàn (khớp màu hiện tại) */
 export const defaultTheme: ThemeDto = {
-  primary: "#f59e0b",
+  primaryColor: "#f59e0b",
   accent: "#f97316",
   background: "#0a0a0a",
   surface: "#111827",
@@ -93,11 +93,11 @@ export function isValidHexColor(s: string | null | undefined): s is string {
 /** Map ThemeSetting -> ThemeDto (tiện applyTheme) */
 export function toThemeDto(x: ThemeSetting): ThemeDto {
   const {
-    primary, accent, background, surface, text, muted,
+    primaryColor, accent, background, surface, text, muted,
     navbar, buttonFrom, buttonTo, scrollbarThumb, scrollbarTrack,
   } = x;
   return {
-    primary, accent, background, surface, text, muted,
+    primaryColor, accent, background, surface, text, muted,
     navbar, buttonFrom, buttonTo, scrollbarThumb, scrollbarTrack,
   };
 }
