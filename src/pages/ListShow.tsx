@@ -11,6 +11,7 @@ import {
   Tag,
   Radio,
   Typography,
+  Grid,
 } from "antd";
 import {
   EditOutlined,
@@ -32,9 +33,11 @@ import { Show } from "../types/Show";
 import { toast } from "react-toastify";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 const ListShow: React.FC = () => {
   const dispatch = useAppDispatch();
+  const screens = useBreakpoint();
   const { items, loading, defaultId } = useAppSelector((s) => s.shows);
 
   const [query, setQuery] = useState("");
@@ -65,7 +68,7 @@ const ListShow: React.FC = () => {
 
   const onDelete = async (id: number) => {
     await dispatch(removeShow(id));
-    toast.success("Xoá show thành công!!!")
+    toast.success("Xoá show thành công!!!");
   };
 
   const onSubmitEdit = async (v: ShowFormValues) => {
@@ -77,124 +80,212 @@ const ListShow: React.FC = () => {
       date: v.date, // Date
       location: v.location,
       bannerUrl: v.bannerUrl,
-      capacity: v.capacity, // string
+      capacity: v.capacity, // string | number (tùy kiểu của bạn)
       slogan: v.slogan,
     };
-    // theo service của bạn: updateShow(title, show)
     await dispatch(editShow({ title: editing.title, show: updated }));
-    toast.success("Sửa show thành công!!!")
+    toast.success("Sửa show thành công!!!");
     setOpen(false);
     setEditing(null);
   };
 
-  const columns = [
-    {
-      title: "",
-      dataIndex: "id",
-      width: 56,
-      render: (_: any, record: Show) => (
-        <Radio
-          checked={record.id === defaultId}
-          onChange={() => record.id && dispatch(setDefaultShow(record.id))}
-        />
-      ),
-    },
-    {
-      title: "Tiêu đề",
-      dataIndex: "title",
-      render: (t: string, r: Show) => (
-        <Space>
-          {r.id === defaultId && <CheckCircleTwoTone twoToneColor="#52c41a" />}
-          <Text strong>{t}</Text>
-        </Space>
-      ),
-    },
-    {
-      title: "Thời gian",
-      dataIndex: "date",
-      render: (d: string | Date) =>
-        d ? dayjs(d).format("DD/MM/YYYY HH:mm") : "-",
-      width: 180,
-    },
-    {
-      title: "Địa điểm",
-      dataIndex: "location",
-      ellipsis: true,
-    },
-    {
-      title: "Sức chứa",
-      dataIndex: "capacity",
-      width: 110,
-      render: (c: string) => <Tag>{c}</Tag>,
-    },
-    {
-      title: "Slogan",
-      dataIndex: "slogan",
-      ellipsis: true,
-    },
-    {
-      title: "Hành động",
-      dataIndex: "actions",
-      width: 140,
-      render: (_: any, record: Show) => (
-        <Space>
-          <Button
-            icon={<EditOutlined />}
-            size="small"
-            onClick={() => onEdit(record)}
-          >
-            Sửa
-          </Button>
-          <Popconfirm
-            title="Xoá show?"
-            okText="Xoá"
-            cancelText="Huỷ"
-            onConfirm={() => onDelete(record.id!)}
-          >
-            <Button danger icon={<DeleteOutlined />} size="small">
-              Xoá
+  // ===== Columns responsive
+  const columns: any[] = useMemo(
+    () => [
+      // Cột gộp cho mobile/tablet
+      {
+        title: "Thông tin",
+        dataIndex: "info",
+        responsive: ["xs"], // hiện ở xs/sm; các cột chi tiết sẽ responsive: ["md"]
+        render: (_: any, r: Show) => (
+          <div className="min-w-[280px]">
+            <div className="flex items-center gap-2">
+              {r.id === defaultId && <CheckCircleTwoTone twoToneColor="#52c41a" />}
+              <Text strong>{r.title}</Text>
+            </div>
+
+            <div className="mt-1 grid grid-cols-1 gap-1 text-[13px] text-gray-300">
+              <div>
+                <span className="text-gray-400">Thời gian:</span>{" "}
+                <b>{r.date ? dayjs(r.date).format("DD/MM/YYYY HH:mm") : "-"}</b>
+              </div>
+              <div className="truncate">
+                <span className="text-gray-400">Địa điểm:</span>{" "}
+                <span title={r.location || "-"}>{r.location || "-"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Sức chứa:</span>
+                <Tag className="m-0">{r.capacity ?? "-"}</Tag>
+              </div>
+              {r.slogan && (
+                <div className="truncate">
+                  <span className="text-gray-400">Slogan:</span>{" "}
+                  <span title={r.slogan}>{r.slogan}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between">
+              <Radio
+                checked={r.id === defaultId}
+                onChange={() => r.id && dispatch(setDefaultShow(r.id))}
+              >
+                Đặt mặc định
+              </Radio>
+
+              <Space>
+                <Button
+                  icon={<EditOutlined />}
+                  size="small"
+                  onClick={() => onEdit(r)}
+                >
+                  Sửa
+                </Button>
+                <Popconfirm
+                  title="Xoá show?"
+                  okText="Xoá"
+                  cancelText="Huỷ"
+                  onConfirm={() => onDelete(r.id!)}
+                >
+                  <Button danger icon={<DeleteOutlined />} size="small">
+                    Xoá
+                  </Button>
+                </Popconfirm>
+              </Space>
+            </div>
+          </div>
+        ),
+      },
+
+      // Các cột chi tiết (desktop từ md)
+      {
+        title: "",
+        dataIndex: "id",
+        width: 64,
+        responsive: ["md"],
+        render: (_: any, record: Show) => (
+          <div className="flex justify-center">
+            <Radio
+              checked={record.id === defaultId}
+              onChange={() => record.id && dispatch(setDefaultShow(record.id))}
+            />
+          </div>
+        ),
+      },
+      {
+        title: "Tiêu đề",
+        dataIndex: "title",
+        responsive: ["md"],
+        render: (t: string, r: Show) => (
+          <Space>
+            {r.id === defaultId && <CheckCircleTwoTone twoToneColor="#52c41a" />}
+            <Text strong>{t}</Text>
+          </Space>
+        ),
+      },
+      {
+        title: "Thời gian",
+        dataIndex: "date",
+        width: 200,
+        responsive: ["md"],
+        render: (d: string | Date) => (d ? dayjs(d).format("DD/MM/YYYY HH:mm") : "-"),
+      },
+      {
+        title: "Địa điểm",
+        dataIndex: "location",
+        ellipsis: true,
+        responsive: ["md"],
+      },
+      {
+        title: "Sức chứa",
+        dataIndex: "capacity",
+        width: 120,
+        responsive: ["md"],
+        render: (c: string | number) => <Tag className="m-0">{c ?? "-"}</Tag>,
+      },
+      {
+        title: "Slogan",
+        dataIndex: "slogan",
+        ellipsis: true,
+        responsive: ["lg"],
+      },
+      {
+        title: "Hành động",
+        dataIndex: "actions",
+        width: 160,
+        fixed: screens.lg ? undefined : "right",
+        responsive: ["md"],
+        render: (_: any, record: Show) => (
+          <Space>
+            <Button
+              icon={<EditOutlined />}
+              size="small"
+              onClick={() => onEdit(record)}
+            >
+              Sửa
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+            <Popconfirm
+              title="Xoá show?"
+              okText="Xoá"
+              cancelText="Huỷ"
+              onConfirm={() => onDelete(record.id!)}
+            >
+              <Button danger icon={<DeleteOutlined />} size="small">
+                Xoá
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [defaultId, screens.lg, dispatch]
+  );
 
   return (
-    <div className="p-6">
-      <Card className="w-full rounded-2xl shadow-lg" bodyStyle={{ padding: 24 }}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <Title level={4} className="!mb-0">Danh sách Show</Title>
-          <Input
-            allowClear
-            size="large"
-            prefix={<SearchOutlined />}
-            placeholder="Tìm theo tiêu đề..."
-            className="rounded-xl shadow-sm focus:shadow-md transition-all"
-            onChange={(e) => setInternal(e.target.value)}
+    <div className="w-full">
+      <Card
+        className="w-full rounded-2xl border border-white/10 bg-white/5 text-white shadow-lg"
+        bodyStyle={{ padding: 16 }}
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <Title level={4} className="!mb-0 text-white">Danh sách Show</Title>
+            <Input
+              allowClear
+              size="large"
+              prefix={<SearchOutlined />}
+              placeholder="Tìm theo tiêu đề..."
+              className="rounded-xl shadow-sm focus:shadow-md transition-all sm:w-[320px]"
+              onChange={(e) => setInternal(e.target.value)}
+            />
+          </div>
+        }
+      >
+        <div className="mb-3 text-gray-300">
+          Tích vào nút tròn để đặt <b>Show mặc định</b>. Hàng có biểu tượng{" "}
+          <CheckCircleTwoTone twoToneColor="#52c41a" /> là show mặc định hiện tại.
+        </div>
+
+        <div className="w-full overflow-x-auto">
+          <Table<Show>
+            rowKey="id"
+            loading={loading}
+            dataSource={filtered}
+            columns={columns}
+            pagination={{ pageSize: 8, showSizeChanger: false }}
+            size={screens.md ? "middle" : "small"}
+            className="min-w-[720px] md:min-w-0 rounded-xl"
+            scroll={{ x: 720 }}
           />
         </div>
-
-        <div className="mb-3">
-          <Text type="secondary">
-            Tích vào nút tròn để đặt <b>Show mặc định</b>. Hàng có biểu tượng{" "}
-            <CheckCircleTwoTone twoToneColor="#52c41a" /> là show mặc định hiện tại.
-          </Text>
-        </div>
-
-        <Table
-          rowKey="id"
-          loading={loading}
-          dataSource={filtered}
-          columns={columns as any}
-          pagination={{ pageSize: 8, showSizeChanger: false }}
-        />
       </Card>
 
       <Modal
         title="Sửa Show"
         open={open}
-        onCancel={() => { setOpen(false); setEditing(null); }}
+        onCancel={() => {
+          setOpen(false);
+          setEditing(null);
+        }}
         footer={null}
         destroyOnClose
       >
