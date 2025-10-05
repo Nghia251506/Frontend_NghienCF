@@ -14,6 +14,7 @@ import {
   Typography,
   Select,
   Tag,
+  Grid,
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
@@ -32,13 +33,15 @@ import type { TicketType } from "../types/TicketType";
 import type { Show } from "../types/Show";
 import type { Booking } from "../types/Booking";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 const PAGE_SIZE = 10;
 
 type TypeRow = TicketType & { remainingQuantity?: number };
 
 const ListType: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const screens = useBreakpoint();
 
   // Slices
   const {
@@ -123,7 +126,7 @@ const ListType: React.FC = () => {
     });
   }, [types, selectedShowId, bookedByType]);
 
-  // ==== Columns
+  // ==== Helpers
   const toVnd = (n: number) =>
     new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -131,20 +134,113 @@ const ListType: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(Number.isFinite(n) ? n : 0);
 
+  // ==== Columns (responsive)
   const columns: ColumnsType<TypeRow> = useMemo(
     () => [
+      // Compact column cho mobile (< md): gộp thông tin quan trọng
+      {
+        title: "Thông tin",
+        dataIndex: "info",
+        responsive: ["xs"], // xuất hiện từ xs trở lên; các cột còn lại set ["md"] để chỉ hiện từ md
+        render: (_: any, r: TypeRow, index) => (
+          <div className="min-w-[260px]">
+            <div className="flex items-center justify-between gap-3">
+              <Text strong>{r.name}</Text>
+              <Tag color="gold">#{r.showId}</Tag>
+            </div>
+            <div className="text-xs text-gray-500">
+              {showTitleMap.get(r.showId!) || "Không rõ"}
+            </div>
+
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <span className="text-[13px] font-medium">{toVnd(r.price || 0)}</span>
+              <span className="text-[12px]">
+                Phát hành: <b>{r.totalQuantity ?? 0}</b>
+              </span>
+              <span
+                className="text-[12px] font-semibold"
+                style={{ color: r.remainingQuantity === 0 ? "#f5222d" : undefined }}
+              >
+                Còn: {r.remainingQuantity}
+              </span>
+              {r.color && (
+                <span className="inline-flex items-center gap-1 text-[12px]">
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 12,
+                      height: 12,
+                      borderRadius: 9999,
+                      background: r.color,
+                      border: "1px solid #ddd",
+                    }}
+                  />
+                  <code>{r.color}</code>
+                </span>
+              )}
+            </div>
+
+            {/* actions trên mobile */}
+            <div className="mt-2 flex items-center gap-8">
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                onClick={() => {
+                  setEditing(r);
+                  setOpenEdit(true);
+                  editForm.setFieldsValue({
+                    showId: selectedShowId ?? r.showId,
+                    name: r.name,
+                    color: r.color,
+                    price: r.price,
+                    totalQuantity: r.totalQuantity,
+                  });
+                }}
+              >
+                Sửa
+              </Button>
+              <Popconfirm
+                title="Xoá loại vé này?"
+                okText="Xoá"
+                cancelText="Huỷ"
+                onConfirm={async () => {
+                  try {
+                    await dispatch(removeTicketType(r.id!)).unwrap();
+                    toast.success("Đã xoá loại vé");
+                  } catch (e: any) {
+                    toast.error(e || "Xoá thất bại");
+                  }
+                }}
+              >
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  size="small"
+                  loading={removingId === r.id}
+                >
+                  Xoá
+                </Button>
+              </Popconfirm>
+            </div>
+          </div>
+        ),
+      },
+
+      // Các cột chi tiết: chỉ hiện từ md trở lên
       {
         title: "STT",
         dataIndex: "stt",
         width: 80,
         align: "center",
+        responsive: ["md"],
         render: (_: any, __: TypeRow, index: number) =>
           (currentPage - 1) * PAGE_SIZE + index + 1,
       },
       {
         title: "Show",
         dataIndex: "showId",
-        width: 240,
+        width: 260,
+        responsive: ["md"],
         render: (id: number) => (
           <Space>
             <Tag color="gold">#{id}</Tag>
@@ -156,11 +252,13 @@ const ListType: React.FC = () => {
         title: "Tên loại vé",
         dataIndex: "name",
         ellipsis: true,
+        responsive: ["md"],
       },
       {
         title: "Màu",
         dataIndex: "color",
-        width: 140,
+        width: 160,
+        responsive: ["lg"],
         render: (c: string) => (
           <Space>
             <span
@@ -181,19 +279,22 @@ const ListType: React.FC = () => {
         title: "Giá",
         dataIndex: "price",
         width: 160,
+        responsive: ["md"],
         render: (v: number) => <span className="font-medium">{toVnd(v)}</span>,
       },
       {
         title: "Phát hành",
         dataIndex: "totalQuantity",
-        width: 120,
+        width: 130,
         align: "center",
+        responsive: ["md"],
       },
       {
         title: "Còn lại",
         dataIndex: "remainingQuantity",
-        width: 120,
+        width: 130,
         align: "center",
+        responsive: ["md"],
         render: (_: any, r: TypeRow) => (
           <span style={{ color: r.remainingQuantity === 0 ? "#f5222d" : undefined, fontWeight: 600 }}>
             {r.remainingQuantity}
@@ -203,7 +304,9 @@ const ListType: React.FC = () => {
       {
         title: "Hành động",
         dataIndex: "actions",
-        width: 170,
+        width: 180,
+        fixed: screens.lg ? undefined : "right",
+        responsive: ["md"],
         render: (_: any, record: TypeRow) => (
           <Space>
             <Button
@@ -212,7 +315,6 @@ const ListType: React.FC = () => {
               onClick={() => {
                 setEditing(record);
                 setOpenEdit(true);
-                // seed form edit (showId ẩn = show đang chọn hoặc của record)
                 editForm.setFieldsValue({
                   showId: selectedShowId ?? record.showId,
                   name: record.name,
@@ -250,7 +352,7 @@ const ListType: React.FC = () => {
         ),
       },
     ],
-    [currentPage, showTitleMap, selectedShowId, editForm, dispatch, removingId]
+    [currentPage, showTitleMap, selectedShowId, editForm, dispatch, removingId, screens.lg]
   );
 
   const handleTableChange = (p: any) => {
@@ -311,19 +413,19 @@ const ListType: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-8">
+    <div className="w-full">
       <Card
-        className="w-full rounded-2xl shadow-lg mx-auto"
-        bodyStyle={{ padding: 24 }}
+        className="w-full rounded-2xl border border-white/10 bg-white/5 text-white shadow-lg"
+        bodyStyle={{ padding: 16 }}
         title={
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <Title level={3} className="!mb-0">🎫 Ticket Types</Title>
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <Title level={3} className="!mb-0 text-white">🎫 Ticket Types</Title>
+            <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
               <Select
                 allowClear
                 showSearch
                 placeholder="Chọn show để xem loại vé..."
-                style={{ minWidth: 280 }}
+                className="w-full sm:min-w-[280px]"
                 options={showOptions}
                 optionFilterProp="label"
                 value={selectedShowId ?? undefined}
@@ -332,24 +434,32 @@ const ListType: React.FC = () => {
                   setCurrentPage(1);
                 }}
               />
-              <Button type="primary" icon={<PlusOutlined />} onClick={onOpenAdd}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={onOpenAdd}
+                className="w-full sm:w-auto"
+              >
                 Thêm loại vé
               </Button>
             </div>
           </div>
         }
       >
-        <Table<TypeRow>
-          rowKey="id"
-          loading={loading}
-          dataSource={dataSource}
-          columns={columns}
-          onChange={handleTableChange}
-          pagination={{ pageSize: PAGE_SIZE, showSizeChanger: false }}
-          bordered
-          size="middle"
-          className="w-full rounded-xl shadow-sm"
-        />
+        <div className="w-full overflow-x-auto">
+          <Table<TypeRow>
+            rowKey="id"
+            loading={loading}
+            dataSource={dataSource}
+            columns={columns}
+            onChange={handleTableChange}
+            pagination={{ pageSize: PAGE_SIZE, showSizeChanger: false }}
+            bordered
+            size={screens.md ? "middle" : "small"}
+            className="min-w-[680px] md:min-w-0 rounded-xl"
+            scroll={{ x: 680 }}
+          />
+        </div>
       </Card>
 
       {/* Modal Add */}
