@@ -1,52 +1,87 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/pages/DesignTheme.tsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Form, Input, Button, Space } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { fetchTheme, saveTheme } from "../redux/ThemeSlice";
-import { applyTheme, ThemeDto } from "../applyTheme";
+import { ThemeDto } from "../applyTheme"; // type bạn đã có
 import { toast } from "react-toastify";
 
-const ColorField: React.FC<{ name: keyof ThemeDto; label: string; }> = ({ name, label }) => {
-  return (
-    <Form.Item name={name} label={label} rules={[{ required: true, message: "Nhập mã màu hex" }]}>
-      <div className="flex gap-2">
-        <Input placeholder="#RRGGBB" className="flex-1" />
-        {/* input type=color cho tiện chọn */}
-        <input
-          type="color"
-          onChange={(e) => {
-            const el = document.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-            if (el) el.value = e.target.value;
-            (document.activeElement as HTMLElement)?.blur();
-          }}
-          className="h-10 w-12 rounded-md cursor-pointer"
-        />
-      </div>
-    </Form.Item>
-  );
+// utils
+const hexToRgb = (hex: string) => {
+  if (!hex) return "0 0 0";
+  const s = hex.replace("#", "");
+  const v = s.length === 3 ? s.split("").map(c => c + c).join("") : s;
+  const n = parseInt(v, 16);
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
 };
+
+const setIframeTheme = (doc: Document, dto: ThemeDto) => {
+  const root = doc.documentElement;
+  root.style.setProperty("--color-primary", hexToRgb(dto.primary));
+  root.style.setProperty("--color-accent", hexToRgb(dto.accent));
+  root.style.setProperty("--color-bg", hexToRgb(dto.background));
+  root.style.setProperty("--color-surface", hexToRgb(dto.surface));
+  root.style.setProperty("--color-text", hexToRgb(dto.text));
+  root.style.setProperty("--color-muted", hexToRgb(dto.muted));
+  root.style.setProperty("--color-navbar", hexToRgb(dto.navbar));
+  root.style.setProperty("--scrollbar-thumb", dto.scrollbarThumb);
+  root.style.setProperty("--scrollbar-track", dto.scrollbarTrack);
+
+  // đảm bảo scrollbar css tồn tại trong iframe
+  const styleId = "theme-scrollbar";
+  let style = doc.getElementById(styleId) as HTMLStyleElement | null;
+  if (!style) {
+    style = doc.createElement("style");
+    style.id = styleId;
+    doc.head.appendChild(style);
+  }
+  style.textContent = `
+    *::-webkit-scrollbar{width:10px;height:10px}
+    *::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:9999px}
+    *::-webkit-scrollbar-track{background:var(--scrollbar-track)}
+    *{scrollbar-color:var(--scrollbar-thumb) var(--scrollbar-track);scrollbar-width:thin}
+  `;
+};
+
+const ColorRow: React.FC<{ name: keyof ThemeDto; label: string; form: any }> = ({ name, label, form }) => (
+  <Form.Item name={name} label={label} rules={[{ required: true, message: "Nhập màu #RRGGBB" }]} className="mb-3">
+    <div className="flex gap-2">
+      <Input placeholder="#RRGGBB" className="flex-1" />
+      <input
+        type="color"
+        className="h-10 w-12 rounded-md cursor-pointer"
+        onChange={(e) => form.setFieldsValue({ [name]: e.target.value })}
+      />
+    </div>
+  </Form.Item>
+);
 
 const DesignTheme: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const theme = useSelector((s: RootState) => s.theme.current);
   const [form] = Form.useForm<ThemeDto>();
-  const [live, setLive] = useState<ThemeDto | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // nạp theme hiện tại
   useEffect(() => {
     if (!theme) dispatch(fetchTheme());
   }, [dispatch, theme]);
 
   useEffect(() => {
-    if (theme) {
-      form.setFieldsValue(theme);
-      setLive(theme);
-    }
+    if (theme) form.setFieldsValue(theme);
   }, [theme, form]);
 
-  // preview realtime: apply vào 1 container riêng (demo), và đồng thời cập nhật global để bạn thấy ngay
+  // áp theme vào iframe khi iframe load lần đầu
+  const handleIframeLoad = () => {
+    const doc = iframeRef.current?.contentDocument;
+    if (doc && theme) setIframeTheme(doc, theme);
+  };
+
+  // realtime: đổi form → đổi trong iframe ngay
   const onValuesChange = (_: any, all: ThemeDto) => {
-    setLive(all);
-    applyTheme(all); // áp trực tiếp, nếu muốn chỉ preview cục bộ thì dùng iframe/khối riêng
+    const doc = iframeRef.current?.contentDocument;
+    if (doc) setIframeTheme(doc, all);
   };
 
   const onSave = async () => {
@@ -55,76 +90,43 @@ const DesignTheme: React.FC = () => {
     toast.success("Đã lưu giao diện");
   };
 
-  const gradientBtn = useMemo(() => ({
-    backgroundImage: `linear-gradient(90deg, "" ?? '#f59e0b'}})`
-  }), [live]);
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Cột trái: form chọn màu */}
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Cột trái: form */}
       <Card title="Thiết lập màu sắc" className="rounded-2xl border border-white/10 bg-white/5 text-white">
-        <Form<ThemeDto>
-          form={form}
-          layout="vertical"
-          onValuesChange={onValuesChange}
-          initialValues={theme ?? {} as any}
-        >
+        <Form form={form} layout="vertical" onValuesChange={onValuesChange}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ColorField name="primary" label="Primary" />
-            <ColorField name="accent" label="Accent" />
-            <ColorField name="background" label="Background" />
-            <ColorField name="surface" label="Surface (card)" />
-            <ColorField name="text" label="Text" />
-            <ColorField name="muted" label="Muted" />
-            <ColorField name="navbar" label="Navbar" />
-            {/* <ColorField name="ButtonFrom" label="Button Gradient From" />
-            <ColorField name="ButtonTo" label="Button Gradient To" /> */}
-            <ColorField name="scrollbarThumb" label="Scrollbar Thumb" />
-            <ColorField name="scrollbarTrack" label="Scrollbar Track" />
+            <ColorRow name="primary" label="Primary" form={form} />
+            <ColorRow name="accent" label="Accent" form={form} />
+            <ColorRow name="background" label="Background" form={form} />
+            <ColorRow name="surface" label="Surface (card)" form={form} />
+            <ColorRow name="text" label="Text" form={form} />
+            <ColorRow name="muted" label="Muted" form={form} />
+            <ColorRow name="navbar" label="Navbar" form={form} />
+            <ColorRow name="scrollbarThumb" label="Scrollbar Thumb" form={form} />
+            <ColorRow name="scrollbarTrack" label="Scrollbar Track" form={form} />
           </div>
 
           <Space className="mt-4">
             <Button type="primary" onClick={onSave}>Lưu</Button>
-            <Button onClick={() => theme && (form.setFieldsValue(theme), applyTheme(theme))}>
-              Hoàn tác về đã lưu
-            </Button>
+            {theme && (
+              <Button onClick={() => { form.setFieldsValue(theme); const doc = iframeRef.current?.contentDocument; if (doc) setIframeTheme(doc, theme); }}>
+                Hoàn tác về đã lưu
+              </Button>
+            )}
           </Space>
         </Form>
       </Card>
 
-      {/* Cột phải: preview realtime */}
-      <Card title="Preview realtime" className="rounded-2xl border border-white/10 bg-white/5 text-white">
-        <div className="rounded-xl p-6" style={{
-          background: live?.background,
-          color: live?.text,
-        }}>
-          <nav className="rounded-lg px-4 py-3 mb-4" style={{ background: live?.navbar }}>
-            <span className="font-semibold">Navbar</span>
-          </nav>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="rounded-xl p-4" style={{ background: live?.surface }}>
-              <h3 className="font-bold mb-2" style={{ color: live?.text }}>Card Title</h3>
-              <p className="text-sm" style={{ color: live?.muted }}>
-                Đây là mô tả ngắn mô phỏng nội dung…
-              </p>
-              <button
-                className="mt-3 text-black font-semibold px-4 py-2 rounded-lg"
-                style={gradientBtn}
-              >
-                Nút Primary
-              </button>
-            </div>
-
-            <div className="rounded-xl p-4 h-40 overflow-y-auto"
-                 style={{ background: live?.surface }}>
-              <p className="text-sm" style={{ color: live?.muted }}>
-                Scroll thử để xem màu scrollbar.
-              </p>
-              <div className="h-64" />
-            </div>
-          </div>
-        </div>
+      {/* Cột phải: PREVIEW = layout client thật */}
+      <Card title="Preview realtime (layout thật)" className="rounded-2xl border border-white/10 bg-white/5 text-white">
+        {/* trỏ đến route bạn muốn xem thử; nếu muốn ẩn header khi preview dùng /?embed=1 */}
+        <iframe
+          ref={iframeRef}
+          src="/"
+          onLoad={handleIframeLoad}
+          className="w-full h-[720px] rounded-xl border border-white/10 bg-black"
+        />
       </Card>
     </div>
   );
