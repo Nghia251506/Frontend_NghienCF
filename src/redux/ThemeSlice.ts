@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { getTheme, updateTheme } from "../service/ThemeService";
-import type { ThemeDto } from "../utils/applyTheme";
+import type { ThemeDto } from "../applyTheme";
 
 export const fetchTheme = createAsyncThunk("theme/fetch", async () => await getTheme());
 export const saveTheme = createAsyncThunk("theme/save", async (dto: ThemeDto) => await updateTheme(dto));
