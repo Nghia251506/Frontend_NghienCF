@@ -22,6 +22,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchTheme } from "./redux/ThemeSlice";
 import { applyTheme } from "./applyTheme";
 import type { RootState, AppDispatch } from "./redux/store";
+import DesignTheme from './pages/DesignTheme';
 
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -57,6 +58,7 @@ export default function App() {
             <Route path='listorder' element={<ListOrder/>}/>
             <Route path='listtype' element={<ListType/>}/>
             <Route path='listticket' element={<TicketAdmin/>}/>
+            <Route path='design' element={<DesignTheme/>}/>
           </Route>
 
         </Routes>
