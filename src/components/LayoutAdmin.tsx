@@ -1,142 +1,3 @@
-// import React, { useState } from 'react';
-// import {
-//   LogoutOutlined,
-//   PieChartOutlined,
-//   TeamOutlined,
-// } from '@ant-design/icons';
-// import { FaMusic } from "react-icons/fa";
-// import type { MenuProps } from 'antd';
-// import { Breadcrumb, Layout, Menu, theme } from 'antd';
-// import { Outlet, useNavigate } from "react-router-dom";
-// import { ToastContainer, toast } from "react-toastify";
-// import { useSelector } from "react-redux"; // ✅ để lấy user
-// import { RootState } from "../redux/store";
-// import { useDispatch } from "react-redux";
-// import { logout } from "../redux/UserSlice";
-// import "react-toastify/dist/ReactToastify.css";
-
-// const { Header, Content, Footer, Sider } = Layout;
-
-// type MenuItem = Required<MenuProps>['items'][number];
-
-// function getItem(
-//   label: React.ReactNode,
-//   key: React.Key,
-//   icon?: React.ReactNode,
-//   children?: MenuItem[],
-// ): MenuItem {
-//   return { key, icon, children, label } as MenuItem;
-// }
-
-// const items: MenuItem[] = [
-//   getItem('Thống kê', 'dashboard', <PieChartOutlined />),
-//   getItem('Quản lý show', 'show', <FaMusic />, [
-//     getItem('Danh sách combo', 'listtype'),
-//     getItem('Thêm show diễn', 'addshow'),
-//     getItem('Danh sách đặt', 'listorder'),
-//     getItem('Danh sách show diễn', 'listshow'),
-//     getItem('Danh sách vé đã đặt', 'listticket'),
-//   ]),
-//   getItem('Thiết kế', 'design', <TeamOutlined />),
-// ];
-
-// const LayoutAdmin: React.FC = () => {
-//   const [collapsed, setCollapsed] = useState(false);
-//   const navigate = useNavigate();
-//   const {
-//     token: { colorBgContainer, borderRadiusLG },
-//   } = theme.useToken();
-
-//   const { currentUser } = useSelector((state: RootState) => state.auth); // ✅ lấy user từ redux
-//   const dispatch = useDispatch();
-
-//   const handleLogout = () => {
-//     dispatch(logout());
-//     toast.success("Đăng xuất thành công!");
-//     navigate("/login"); // quay về login
-//   };
-//   const onClick: MenuProps['onClick'] = (e) => {
-//     navigate(`/admin/${e.key}`);
-//     toast.info(`Đang chuyển đến trang: ${e.key}`); // ví dụ toast khi click menu
-//   };
-
-//   return (
-//     <Layout style={{ minHeight: '100vh' }}>
-//       <Sider
-//         collapsible
-//         collapsed={collapsed}
-//         onCollapse={(value) => setCollapsed(value)}
-//       >
-//         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-//           <div style={{ flex: 1 }}>
-//             {/* Welcome user */}
-//             {!collapsed && (
-//               <div style={{ color: "white", padding: 16 }}>
-//                 Welcome, <b>Admin</b>
-//               </div>
-//             )}
-//             <Menu
-//               theme="dark"
-//               defaultSelectedKeys={["dashboard"]}
-//               mode="inline"
-//               items={items}
-//               onClick={onClick}
-//             />
-//           </div>
-
-//           {/* Nút logout */}
-//           <div style={{ padding: 16 }}>
-//             <button
-//               onClick={handleLogout}
-//               style={{
-//                 width: "100%",
-//                 background: "red",
-//                 color: "white",
-//                 border: "none",
-//                 borderRadius: 6,
-//                 padding: "8px 0",
-//                 cursor: "pointer",
-//                 display: "flex",
-//                 alignItems: "center",
-//                 justifyContent: "center",
-//                 gap: "8px",
-//               }}
-//             >
-//               <LogoutOutlined />
-//               {!collapsed && "Đăng xuất"}
-//             </button>
-//           </div>
-//         </div>
-//       </Sider>
-
-//       <Layout>
-//         <Header style={{ padding: 0, background: colorBgContainer }} />
-//         <Content style={{ margin: '0 16px' }}>
-//           <Breadcrumb style={{ margin: '16px 0' }} items={[{ title: 'Admin' }, { title: 'Dashboard' }]} />
-//           <div
-//             style={{
-//               padding: 24,
-//               minHeight: 360,
-//               background: colorBgContainer,
-//               borderRadius: borderRadiusLG,
-//             }}
-//           >
-//             <Outlet />
-//           </div>
-//         </Content>
-//         <Footer style={{ textAlign: 'center' }}>
-//           Admin Dashboard ©{new Date().getFullYear()}
-//         </Footer>
-//       </Layout>
-
-//       {/* Toast container luôn nằm ở cuối layout */}
-//       {/* <ToastContainer position="top-right" autoClose={3000} /> */}
-//     </Layout>
-//   );
-// };
-
-// export default LayoutAdmin;
-
 import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -146,7 +7,10 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // Icons
-import { Menu, X, Home, BarChart3, Palette, LogOut, ChevronRight, Ticket, List, PlusSquare } from "lucide-react";
+import {
+  Menu, X, Home, BarChart3, Palette, LogOut, ChevronRight,
+  Ticket, List, PlusSquare
+} from "lucide-react";
 import { FaMusic } from "react-icons/fa";
 
 // ---- Nav config ----
@@ -217,7 +81,8 @@ const LayoutAdmin: React.FC = () => {
     <div className="min-h-screen bg-neutral-950 text-white">
       {/* Topbar */}
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/50 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        {/* full width, không max-w */}
+        <div className="px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Mobile: toggle sidebar */}
             <button
@@ -248,12 +113,11 @@ const LayoutAdmin: React.FC = () => {
         </div>
       </header>
 
-      {/* Shell */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-[240px_1fr] gap-6 py-6">
-          {/* Sidebar */}
-          {/* Desktop */}
-          <aside className="hidden lg:block">
+      {/* Shell: full width desktop */}
+      <div className="px-3 sm:px-4 lg:px-6">
+        <div className="grid lg:grid-cols-[260px_1fr] gap-4 lg:gap-6 py-4 lg:py-6">
+          {/* Sidebar (desktop) */}
+          <aside className="hidden lg:block sticky top-16 self-start h-[calc(100vh-4rem)] overflow-auto">
             <nav className="p-3 rounded-2xl border border-white/10 bg-white/5">
               <div className="mb-3 px-2 text-xs uppercase tracking-wider text-gray-400">
                 Điều hướng
@@ -492,11 +356,14 @@ const LayoutAdmin: React.FC = () => {
             </div>
           )}
 
-          {/* Main */}
-          <main className="pb-12">
+          {/* Main (full width area) */}
+          <main className="pb-10 lg:pb-12 min-w-0">
             <SectionTitle title={currentTitle} />
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-              <Outlet />
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4 lg:p-6">
+              {/* gợi ý: thêm wrapper cho bảng lớn để kéo ngang trên mobile/ipad */}
+              <div className="w-full overflow-x-auto">
+                <Outlet />
+              </div>
             </div>
             <footer className="mt-6 text-center text-xs text-gray-400">
               Admin Dashboard ©{new Date().getFullYear()}
