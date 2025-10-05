@@ -1,5 +1,5 @@
 // src/pages/TicketAdmin.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { fetchShows } from "../redux/ShowSlice";
@@ -14,6 +14,9 @@ import {
   Tag,
   Switch,
   message,
+  Card,
+  Typography,
+  Grid,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { ReloadOutlined, SearchOutlined } from "@ant-design/icons";
@@ -21,7 +24,6 @@ import dayjs, { Dayjs } from "dayjs";
 
 import { getAllTickets, updateTicket } from "../service/TicketService";
 
-// Kiểu dữ liệu hàng (backend nên trả về kèm thông tin booking)
 type TicketRow = {
   id: number;
   bookingId: number;
@@ -37,10 +39,12 @@ type TicketRow = {
 type Paged<T> = { items: T[]; total: number };
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
+const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 const TicketAdmin: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const screens = useBreakpoint();
 
   // shows cho bộ lọc
   const shows = useSelector((s: RootState) => s.shows.items);
@@ -85,14 +89,13 @@ const TicketAdmin: React.FC = () => {
   const loadTickets = async () => {
     setLoading(true);
     try {
-      // BE có thể trả: TicketRow[] hoặc { items: TicketRow[], total: number }
       const res = (await getAllTickets(queryParams)) as TicketRow[] | Paged<TicketRow>;
       const items = Array.isArray(res) ? res : res.items;
       const total = Array.isArray(res) ? items.length : res.total;
-
       setData(items);
       setPagination((p) => ({ ...p, total: total ?? items.length }));
     } catch (e: any) {
+      // eslint-disable-next-line no-console
       console.error(e);
       message.error(e?.response?.data?.message || "Tải danh sách vé thất bại");
     } finally {
@@ -100,18 +103,23 @@ const TicketAdmin: React.FC = () => {
     }
   };
 
+  // load khi đổi query
   useEffect(() => {
     loadTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryParams]);
 
-  // debounce tìm kiếm theo ticket code (300ms)
+  // debounce tìm theo ticketCode (300ms)
+  const debounceRef = useRef<number | null>(null);
   useEffect(() => {
-    const t = setTimeout(() => {
-      setPagination((p) => ({ ...p, current: 1 })); // quay về trang 1 khi đổi code
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      setPagination((p) => ({ ...p, current: 1 }));
       loadTickets();
     }, 300);
-    return () => clearTimeout(t);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketCode]);
 
@@ -134,120 +142,198 @@ const TicketAdmin: React.FC = () => {
     try {
       await updateTicket(record.id, { status: "used" });
       message.success(`Đã cập nhật vé ${record.ticketCode} → used`);
-      // cập nhật local ngay để phản hồi nhanh
       setData((prev) =>
         prev.map((t) => (t.id === record.id ? { ...t, status: "used" } : t))
       );
     } catch (e: any) {
+      // eslint-disable-next-line no-console
       console.error(e);
       message.error(e?.response?.data?.message || "Cập nhật trạng thái vé thất bại");
     }
   };
 
-  const columns: ColumnsType<TicketRow> = [
-    {
-      title: "STT",
-      dataIndex: "stt",
-      width: 80,
-      align: "center",
-      render: (_, __, index) =>
-        ((pagination.current || 1) - 1) * (pagination.pageSize || 10) + index + 1,
-    },
-    {
-      title: "Tên khách đặt",
-      dataIndex: "customerName",
-      ellipsis: true,
-      render: (v: string) => v || "-",
-    },
-    {
-      title: "SĐT",
-      dataIndex: "phone",
-      width: 140,
-      render: (v: string) => v || "-",
-    },
-    {
-      title: "TicketCode",
-      dataIndex: "ticketCode",
-      width: 180,
-      render: (v: string) => <Tag color="gold">{v}</Tag>,
-    },
-    {
-      title: "Ngày thanh toán",
-      dataIndex: "paymentTime",
-      width: 200,
-      render: (v: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "-"),
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "status",
-      width: 120,
-      align: "center",
-      render: (v: TicketRow["status"]) =>
-        v === "used" ? <Tag color="purple">used</Tag> : <Tag color="green">valid</Tag>,
-    },
-    {
-      title: "Check-in",
-      dataIndex: "check",
-      width: 140,
-      align: "center",
-      render: (_, record) => (
-        <Switch
-          checked={record.status === "used"}
-          checkedChildren="Used"
-          unCheckedChildren="Valid"
-          onChange={() => handleMarkUsed(record)}
-        />
-      ),
-    },
-  ];
+  const toDateTime = (v?: string) =>
+    v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "-";
+
+  // ========== Columns responsive
+  const columns: ColumnsType<TicketRow> = useMemo(
+    () => [
+      // Gộp cho mobile
+      {
+        title: "Thông tin",
+        dataIndex: "info",
+        responsive: ["xs"],
+        render: (_: any, r) => (
+          <div className="min-w-[280px]">
+            <div className="flex items-center justify-between">
+              <Text strong>#{r.id} • {r.customerName || "-"}</Text>
+              <span className="text-[12px] text-gray-400">{toDateTime(r.paymentTime)}</span>
+            </div>
+
+            <div className="mt-1 grid grid-cols-1 gap-1 text-[13px] text-gray-300">
+              <div>
+                <span className="text-gray-400">Ticket:</span>{" "}
+                <Tag color="gold" className="m-0">{r.ticketCode}</Tag>
+              </div>
+              <div>
+                <span className="text-gray-400">SĐT:</span>{" "}
+                <b>{r.phone || "-"}</b>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Trạng thái:</span>{" "}
+                {r.status === "used" ? <Tag color="purple">used</Tag> : <Tag color="green">valid</Tag>}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Check-in:</span>
+                <Switch
+                  checked={r.status === "used"}
+                  checkedChildren="Used"
+                  unCheckedChildren="Valid"
+                  onChange={() => handleMarkUsed(r)}
+                />
+              </div>
+            </div>
+          </div>
+        ),
+      },
+
+      // Chi tiết từ md trở lên
+      {
+        title: "STT",
+        dataIndex: "stt",
+        width: 80,
+        align: "center",
+        responsive: ["md"],
+        render: (_, __, index) =>
+          ((pagination.current || 1) - 1) * (pagination.pageSize || 10) + index + 1,
+      },
+      {
+        title: "Tên khách đặt",
+        dataIndex: "customerName",
+        ellipsis: true,
+        responsive: ["md"],
+        render: (v: string) => v || "-",
+      },
+      {
+        title: "SĐT",
+        dataIndex: "phone",
+        width: 140,
+        responsive: ["md"],
+        render: (v: string) => v || "-",
+      },
+      {
+        title: "TicketCode",
+        dataIndex: "ticketCode",
+        width: 180,
+        responsive: ["md"],
+        render: (v: string) => <Tag color="gold">{v}</Tag>,
+      },
+      {
+        title: "Ngày thanh toán",
+        dataIndex: "paymentTime",
+        width: 200,
+        responsive: ["md"],
+        render: (v: string) => toDateTime(v),
+      },
+      {
+        title: "Trạng thái",
+        dataIndex: "status",
+        width: 120,
+        align: "center",
+        responsive: ["md"],
+        render: (v: TicketRow["status"]) =>
+          v === "used" ? <Tag color="purple">used</Tag> : <Tag color="green">valid</Tag>,
+      },
+      {
+        title: "Check-in",
+        dataIndex: "check",
+        width: 140,
+        align: "center",
+        responsive: ["md"],
+        render: (_, record) => (
+          <Switch
+            checked={record.status === "used"}
+            checkedChildren="Used"
+            unCheckedChildren="Valid"
+            onChange={() => handleMarkUsed(record)}
+          />
+        ),
+      },
+    ],
+    [pagination.current, pagination.pageSize]
+  );
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 16 }}>Quản lý vé đã phát hành</h2>
+    <div className="w-full">
+      <Card
+        className="w-full rounded-2xl border border-white/10 bg-white/5 text-white shadow-lg"
+        bodyStyle={{ padding: 16 }}
+        title={<Title level={3} className="!mb-0 text-white">🎟️ Quản lý vé đã phát hành</Title>}
+      >
+        {/* Toolbar filters */}
+        <div className="mb-4">
+          <div className="flex flex-col md:flex-row md:items-end gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <Input
+                allowClear
+                prefix={<SearchOutlined />}
+                placeholder="Tìm theo TicketCode"
+                value={ticketCode}
+                onChange={(e) => setTicketCode(e.target.value)}
+                size="large"
+              />
+            </div>
 
-      {/* Toolbar filters */}
-      <Space wrap style={{ marginBottom: 16 }}>
-        <Input
-          allowClear
-          prefix={<SearchOutlined />}
-          placeholder="Tìm theo TicketCode"
-          style={{ width: 240 }}
-          value={ticketCode}
-          onChange={(e) => setTicketCode(e.target.value)}
-        />
+            <div className="flex-1 min-w-[260px]">
+              <RangePicker
+                value={range as any}
+                onChange={(v) => setRange(v as any)}
+                placeholder={["Từ ngày", "Đến ngày"]}
+                format={"DD/MM/YYYY"}
+                className="w-full"
+                size="large"
+              />
+            </div>
 
-        <RangePicker
-          value={range as any}
-          onChange={(v) => setRange(v as any)}
-          placeholder={["Từ ngày", "Đến ngày"]}
-          format={"DD/MM/YYYY"}
-        />
+            <div className="flex-1 min-w-[220px]">
+              <Select
+                allowClear
+                placeholder="Lọc theo Show"
+                value={showId}
+                onChange={(v) => setShowId(v)}
+                options={shows.map((s) => ({ value: s.id, label: s.title }))}
+                className="w-full"
+                size="large"
+              />
+            </div>
 
-        <Select
-          allowClear
-          placeholder="Lọc theo Show"
-          style={{ width: 220 }}
-          value={showId}
-          onChange={(v) => setShowId(v)}
-          options={shows.map((s) => ({ value: s.id, label: s.title }))}
-        />
+            <Space wrap>
+              <Button icon={<ReloadOutlined />} onClick={loadTickets} size="large">
+                Làm mới
+              </Button>
+              <Button onClick={handleResetFilters} size="large">
+                Xoá bộ lọc
+              </Button>
+            </Space>
+          </div>
+        </div>
 
-        <Button icon={<ReloadOutlined />} onClick={loadTickets}>
-          Làm mới
-        </Button>
-        <Button onClick={handleResetFilters}>Xoá bộ lọc</Button>
-      </Space>
-
-      {/* Table */}
-      <Table<TicketRow>
-        rowKey="id"
-        loading={loading}
-        columns={columns}
-        dataSource={data}
-        pagination={pagination}
-        onChange={onTableChange}
-        bordered
-      />
+        {/* Table */}
+        <div className="w-full overflow-x-auto">
+          <Table<TicketRow>
+            rowKey="id"
+            loading={loading}
+            columns={columns}
+            dataSource={data}
+            pagination={pagination}
+            onChange={onTableChange}
+            bordered
+            size={screens.md ? "middle" : "small"}
+            className="min-w-[760px] md:min-w-0 rounded-xl"
+            scroll={{ x: 760 }}
+          />
+        </div>
+      </Card>
     </div>
   );
 };
