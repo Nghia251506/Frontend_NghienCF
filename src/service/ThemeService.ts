@@ -1,6 +1,6 @@
-import axios from "axios";
+import axiosClient from "../axios/axiosClient";
 import type { ThemeDto } from "../applyTheme";
 
-const API = import.meta.env.VITE_API_BASE; // https://backend.../api
-export const getTheme = async () => (await axios.get<ThemeDto>(`${API}/theme`)).data;
-export const updateTheme = async (dto: ThemeDto) => (await axios.put(`${API}/theme`, dto)).data;
+const THEM_URL = "/theme"
+export const getTheme = async () => (await axiosClient.get<ThemeDto>(`${THEM_URL}`));
+export const updateTheme = async (dto: ThemeDto) => (await axiosClient.put(`${THEM_URL}`, dto)).data;

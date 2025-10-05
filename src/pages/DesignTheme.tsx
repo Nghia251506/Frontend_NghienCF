@@ -3,7 +3,7 @@ import { Card, Form, Input, Button, Space } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { fetchTheme, saveTheme } from "../redux/ThemeSlice";
-import { applyTheme, ThemeDto } from "../utils/applyTheme";
+import { applyTheme, ThemeDto } from "../applyTheme";
 import { toast } from "react-toastify";
 
 const ColorField: React.FC<{ name: keyof ThemeDto; label: string; }> = ({ name, label }) => {
@@ -56,7 +56,7 @@ const DesignTheme: React.FC = () => {
   };
 
   const gradientBtn = useMemo(() => ({
-    backgroundImage: `linear-gradient(90deg, ${live?.ButtonFrom ?? '#f59e0b'}, ${live?.ButtonTo ?? '#f97316'})`
+    backgroundImage: `linear-gradient(90deg, "" ?? '#f59e0b'}})`
   }), [live]);
 
   return (
@@ -70,17 +70,17 @@ const DesignTheme: React.FC = () => {
           initialValues={theme ?? {} as any}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ColorField name="Primary" label="Primary" />
-            <ColorField name="Accent" label="Accent" />
-            <ColorField name="Background" label="Background" />
-            <ColorField name="Surface" label="Surface (card)" />
-            <ColorField name="Text" label="Text" />
-            <ColorField name="Muted" label="Muted" />
-            <ColorField name="Navbar" label="Navbar" />
-            <ColorField name="ButtonFrom" label="Button Gradient From" />
-            <ColorField name="ButtonTo" label="Button Gradient To" />
-            <ColorField name="ScrollbarThumb" label="Scrollbar Thumb" />
-            <ColorField name="ScrollbarTrack" label="Scrollbar Track" />
+            <ColorField name="primary" label="Primary" />
+            <ColorField name="accent" label="Accent" />
+            <ColorField name="background" label="Background" />
+            <ColorField name="surface" label="Surface (card)" />
+            <ColorField name="text" label="Text" />
+            <ColorField name="muted" label="Muted" />
+            <ColorField name="navbar" label="Navbar" />
+            {/* <ColorField name="ButtonFrom" label="Button Gradient From" />
+            <ColorField name="ButtonTo" label="Button Gradient To" /> */}
+            <ColorField name="scrollbarThumb" label="Scrollbar Thumb" />
+            <ColorField name="scrollbarTrack" label="Scrollbar Track" />
           </div>
 
           <Space className="mt-4">
@@ -95,17 +95,17 @@ const DesignTheme: React.FC = () => {
       {/* Cột phải: preview realtime */}
       <Card title="Preview realtime" className="rounded-2xl border border-white/10 bg-white/5 text-white">
         <div className="rounded-xl p-6" style={{
-          background: live?.Background,
-          color: live?.Text,
+          background: live?.background,
+          color: live?.text,
         }}>
-          <nav className="rounded-lg px-4 py-3 mb-4" style={{ background: live?.Navbar }}>
+          <nav className="rounded-lg px-4 py-3 mb-4" style={{ background: live?.navbar }}>
             <span className="font-semibold">Navbar</span>
           </nav>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="rounded-xl p-4" style={{ background: live?.Surface }}>
-              <h3 className="font-bold mb-2" style={{ color: live?.Text }}>Card Title</h3>
-              <p className="text-sm" style={{ color: live?.Muted }}>
+            <div className="rounded-xl p-4" style={{ background: live?.surface }}>
+              <h3 className="font-bold mb-2" style={{ color: live?.text }}>Card Title</h3>
+              <p className="text-sm" style={{ color: live?.muted }}>
                 Đây là mô tả ngắn mô phỏng nội dung…
               </p>
               <button
@@ -117,8 +117,8 @@ const DesignTheme: React.FC = () => {
             </div>
 
             <div className="rounded-xl p-4 h-40 overflow-y-auto"
-                 style={{ background: live?.Surface }}>
-              <p className="text-sm" style={{ color: live?.Muted }}>
+                 style={{ background: live?.surface }}>
+              <p className="text-sm" style={{ color: live?.muted }}>
                 Scroll thử để xem màu scrollbar.
               </p>
               <div className="h-64" />
