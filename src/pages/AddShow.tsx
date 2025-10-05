@@ -1,5 +1,4 @@
-// src/pages/AddShow.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Form, Input, DatePicker, InputNumber, Button, Card, Upload } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -9,6 +8,8 @@ import { addShow } from "../redux/ShowSlice";
 import { uploadImage } from "../service/UploadService";
 import type { ShowCreateDto } from "../types/Show";
 
+const { TextArea } = Input;
+
 const AddShow: React.FC = () => {
   const [form] = Form.useForm();
   const dispatch = useAppDispatch();
@@ -16,10 +17,14 @@ const AddShow: React.FC = () => {
 
   const [fileList, setFileList] = useState<any[]>([]);
 
+  const bannerPreview = useMemo(() => {
+    const f = fileList[0]?.originFileObj as File | undefined;
+    return f ? URL.createObjectURL(f) : undefined;
+  }, [fileList]);
+
   const onFinish = async (values: any) => {
     try {
       // 1) Chuẩn hoá ngày giờ -> ISO (an toàn cho ASP.NET)
-      // Antd DatePicker trả về Dayjs; dùng toDate().toISOString()
       const dateIso = dayjs(values.date).format("YYYY-MM-DDTHH:mm:ssZ");
 
       // 2) Upload ảnh nếu có -> nhận về URL
@@ -32,117 +37,159 @@ const AddShow: React.FC = () => {
         bannerUrl = url.trim();
       }
 
-      // 3) Tạo payload đúng kiểu; KHÔNG gửi bannerUrl nếu không có
+      // 3) Payload
       const payload: Partial<ShowCreateDto> = {
         title: (values.title || "").trim(),
         description: (values.description || "").trim(),
-        date: dateIso, // string ISO
+        date: dateIso,
         location: (values.location || "").trim(),
-        capacity: values.capacity || "",
+        capacity: typeof values.capacity === "number" ? values.capacity : Number(values.capacity ?? 0),
         slogan: (values.slogan || "").trim(),
         ...(bannerUrl ? { bannerUrl } : {}),
       };
 
-      console.log("[AddShow] payload gửi:", payload);
-
       await dispatch(addShow(payload as ShowCreateDto)).unwrap();
       toast.success("✅ Thêm show thành công!");
-
       form.resetFields();
       setFileList([]);
     } catch (err: any) {
-      // In chi tiết lỗi từ backend để xác định vì sao 400
       const resp = err?.response?.data;
-      console.error("[AddShow] error:", resp || err);
-
-      // Ưu tiên hiện ModelState errors, sau đó message/title
       const detail =
         (resp?.errors && JSON.stringify(resp.errors)) ||
         resp?.message ||
         resp?.title ||
+        err?.message ||
         "Thêm show thất bại!";
-
       toast.error(detail);
+      // eslint-disable-next-line no-console
+      console.error("[AddShow] error:", resp || err);
     }
   };
 
   return (
-    <div className="p-6 flex justify-center">
+    <div className="w-full px-3 sm:px-4 lg:px-6">
+      {/* Card full-width desktop, gọn ở mobile */}
       <Card
-        title="Thêm Show Diễn"
-        className="w-full max-w-2xl shadow-lg rounded-xl"
-        styles={{ body: { padding: 16 } }} // dùng styles thay cho bodyStyle (antd deprecate)
+        title={<div className="text-base sm:text-lg font-semibold">Thêm Show Diễn</div>}
+        className="w-full shadow-lg rounded-2xl border border-white/10 bg-white/5 text-white"
+        styles={{ body: { padding: 16 } }}
       >
-        <Form layout="vertical" form={form} onFinish={onFinish}>
-          <Form.Item
-            label="Tên Show"
-            name="title"
-            rules={[{ required: true, message: "Vui lòng nhập tên show!" }]}
-          >
-            <Input placeholder="Nhập tên show..." />
-          </Form.Item>
-
-          <Form.Item
-            label="Mô tả"
-            name="description"
-            rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
-          >
-            <Input.TextArea rows={4} placeholder="Nhập mô tả show..." />
-          </Form.Item>
-
-          <Form.Item
-            label="Ngày & giờ diễn"
-            name="date"
-            rules={[{ required: true, message: "Vui lòng chọn ngày giờ!" }]}
-          >
-            <DatePicker
-              className="w-full"
-              showTime={{ format: "HH:mm", minuteStep: 5 }}
-              format="DD/MM/YYYY HH:mm"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Địa điểm"
-            name="location"
-            rules={[{ required: true, message: "Vui lòng nhập địa điểm!" }]}
-          >
-            <Input placeholder="Nhập địa điểm tổ chức..." />
-          </Form.Item>
-
-          <Form.Item
-            label="Sức chứa (người)"
-            name="capacity"
-            rules={[{ required: true, message: "Vui lòng nhập sức chứa!" }]}
-          >
-            <Input className="w-full" placeholder="Nhập sức chứa" />
-          </Form.Item>
-
-          <Form.Item label="Slogan / Khẩu hiệu" name="slogan">
-            <Input placeholder="Ví dụ: Một đêm không thể quên!" />
-          </Form.Item>
-
-          {/* Ảnh bìa (tùy chọn). 
-              Nếu server bắt buộc ảnh, thêm rules={[{ required: true, message: "Vui lòng chọn ảnh bìa!" }]} */}
-          <Form.Item label="Ảnh bìa" valuePropName="fileList">
-            <Upload
-              fileList={fileList}
-              beforeUpload={() => false} // không upload tự động
-              maxCount={1}
-              onChange={({ fileList }) => setFileList(fileList)}
-              accept="image/*"
+        {/* Grid responsive: 2 cột từ md trở lên */}
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+        >
+          {/* Cột trái */}
+          <div className="space-y-4 md:space-y-6">
+            <Form.Item
+              label={<span className="text-gray-200">Tên Show</span>}
+              name="title"
+              rules={[{ required: true, message: "Vui lòng nhập tên show!" }]}
             >
-              <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
-            </Upload>
-          </Form.Item>
+              <Input size="large" placeholder="Nhập tên show..." />
+            </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" className="w-full" loading={loading}>
+            <Form.Item
+              label={<span className="text-gray-200">Ngày & giờ diễn</span>}
+              name="date"
+              rules={[{ required: true, message: "Vui lòng chọn ngày giờ!" }]}
+              tooltip="Chọn ngày và giờ bắt đầu show"
+            >
+              <DatePicker
+                className="w-full"
+                size="large"
+                showTime={{ format: "HH:mm", minuteStep: 5 }}
+                format="DD/MM/YYYY HH:mm"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label={<span className="text-gray-200">Địa điểm</span>}
+              name="location"
+              rules={[{ required: true, message: "Vui lòng nhập địa điểm!" }]}
+              tooltip="Ví dụ: Nghiền Cafe, 123 Lê Lợi, Q.1, TP.HCM"
+            >
+              <Input size="large" placeholder="Nhập địa điểm tổ chức..." />
+            </Form.Item>
+
+            <Form.Item
+              label={<span className="text-gray-200">Sức chứa (người)</span>}
+              name="capacity"
+              rules={[
+                { required: true, message: "Vui lòng nhập sức chứa!" },
+                { type: "number", min: 1, message: "Sức chứa phải lớn hơn 0" },
+              ]}
+            >
+              <InputNumber
+                className="w-full"
+                size="large"
+                placeholder="VD: 150"
+                controls={false}
+              />
+            </Form.Item>
+          </div>
+
+          {/* Cột phải */}
+          <div className="space-y-4 md:space-y-6">
+            <Form.Item label={<span className="text-gray-200">Slogan / Khẩu hiệu</span>} name="slogan">
+              <Input size="large" placeholder="Ví dụ: Một đêm không thể quên!" />
+            </Form.Item>
+
+            <Form.Item
+              label={<span className="text-gray-200">Mô tả</span>}
+              name="description"
+              rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
+            >
+              <TextArea rows={6} placeholder="Nhập mô tả show..." />
+            </Form.Item>
+
+            <Form.Item label={<span className="text-gray-200">Ảnh bìa</span>} valuePropName="fileList">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start">
+                <Upload
+                  fileList={fileList}
+                  beforeUpload={() => false}  // không upload tự động
+                  maxCount={1}
+                  onChange={({ fileList }) => setFileList(fileList)}
+                  accept="image/*"
+                >
+                  <Button icon={<UploadOutlined />} size="large">
+                    Chọn ảnh
+                  </Button>
+                </Upload>
+
+                {bannerPreview && (
+                  <img
+                    src={bannerPreview}
+                    alt="Banner preview"
+                    className="h-28 w-full sm:w-40 object-cover rounded-lg border border-white/10"
+                  />
+                )}
+              </div>
+              <div className="mt-2 text-xs text-gray-400">
+                JPG/PNG/WebP • &lt; 2MB • Tỷ lệ khung nên 16:9 để hiển thị đẹp.
+              </div>
+            </Form.Item>
+          </div>
+
+          {/* Hàng hành động */}
+          <div className="md:col-span-2">
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              className="w-full md:w-auto"
+              loading={loading}
+            >
               Thêm Show
             </Button>
-          </Form.Item>
+          </div>
         </Form>
       </Card>
+
+      {/* Khoảng cách đáy trên mobile */}
+      <div className="h-6" />
     </div>
   );
 };
