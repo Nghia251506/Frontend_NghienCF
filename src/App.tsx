@@ -20,7 +20,7 @@ import TicketAdmin from './pages/TicketAdmin';
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchTheme } from "./redux/ThemeSlice";
-import { applyTheme } from "./utils/applyTheme";
+import { applyTheme } from "./applyTheme";
 import type { RootState, AppDispatch } from "./redux/store";
 
 export default function App() {
