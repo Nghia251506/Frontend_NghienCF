@@ -8,30 +8,35 @@ import type {
   Paged,
 } from "../types/theme";
 
-const BASE = "/api/theme-settings";
+const THEME_URL = "/api/theme-settings";
 
-/** Lấy theme đang áp dụng. Nếu không truyền showId => fallback global */
-export const getActiveTheme = (showId?: number | null) =>
-  axiosClient.get<ThemeDto | null>(
-    showId != null ? `${BASE}/active?showId=${showId}` : `${BASE}/active`
-  );
+/** Lấy theme đang áp dụng. Nếu không truyền showId => fallback global (ShowId = null) */
+export const getActiveTheme = async (showId?: number | null): Promise<ThemeDto | null> => {
+  const qs = showId != null ? `?showId=${showId}` : "";
+  return await axiosClient.get(`${THEME_URL}/active${qs}`);
+};
 
-/** Lấy toàn bộ theme (quản trị) */
-export const listThemes = () =>
-  axiosClient.get<ThemeSetting[] | Paged<ThemeSetting>>(BASE);
+/** Lấy toàn bộ theme (cho admin) */
+export const getAllThemes = async (): Promise<ThemeSetting[] | Paged<ThemeSetting>> => {
+  return await axiosClient.get(`${THEME_URL}`);
+};
 
-/** Lấy 1 theme theo id */
-export const getThemeById = (id: number) =>
-  axiosClient.get<ThemeSetting>(`${BASE}/${id}`);
+/** Lấy một theme theo id */
+export const getThemeById = async (id: number): Promise<ThemeSetting> => {
+  return await axiosClient.get(`${THEME_URL}/${id}`);
+};
 
 /** Tạo theme mới (global hoặc theo show) */
-export const createTheme = (dto: ThemeCreateDto) =>
-  axiosClient.post<ThemeSetting>(BASE, dto);
+export const createTheme = async (dto: ThemeCreateDto): Promise<ThemeSetting> => {
+  return await axiosClient.post(THEME_URL, dto);
+};
 
-/** Cập nhật theme */
-export const updateTheme = (id: number, dto: ThemeUpdateDto) =>
-  axiosClient.put<ThemeSetting>(`${BASE}/${id}`, dto);
+/** Cập nhật theme theo id */
+export const updateTheme = async (id: number, dto: ThemeUpdateDto): Promise<ThemeSetting> => {
+  return await axiosClient.put(`${THEME_URL}/${id}`, dto);
+};
 
-/** Xoá theme */
-export const deleteTheme = (id: number) =>
-  axiosClient.delete<void>(`${BASE}/${id}`);
+/** Xoá theme theo id */
+export const deleteTheme = async (id: number): Promise<void> => {
+  await axiosClient.delete(`${THEME_URL}/${id}`);
+};

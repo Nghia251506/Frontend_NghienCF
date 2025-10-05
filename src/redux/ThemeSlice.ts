@@ -3,7 +3,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import type { ThemeDto, ThemeSetting, ThemeCreateDto, ThemeUpdateDto } from "../types/theme";
 import {
   getActiveTheme,
-  listThemes,
+  getAllThemes,
   createTheme,
   updateTheme as apiUpdateTheme,
   deleteTheme as apiDeleteTheme,
@@ -34,7 +34,7 @@ export const fetchTheme = createAsyncThunk(
 /** ADMIN: lấy toàn bộ themes */
 export const fetchThemeList = createAsyncThunk(
   "theme/fetchList",
-  async () => await listThemes()
+  async () => await getAllThemes()
 );
 
 /** ADMIN: tạo theme mới */
