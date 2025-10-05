@@ -8,7 +8,7 @@ import type {
   Paged,
 } from "../types/theme";
 
-const THEME_URL = "/api/theme-settings";
+const THEME_URL = "/theme-settings";
 
 /** Lấy theme đang áp dụng. Nếu không truyền showId => fallback global (ShowId = null) */
 export const getActiveTheme = async (showId?: number | null): Promise<ThemeDto | null> => {
