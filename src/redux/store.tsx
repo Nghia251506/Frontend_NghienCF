@@ -4,6 +4,7 @@ import authReducer from "./UserSlice";
 import bookingReducer from "./BookingSlice"
 import tickettypeReducer from "./TicketTypeSlice"
 import ticketsReducer from "./TicketSlice";
+import themeReducer from"./ThemeSlice.ts"
 
 
 export const store = configureStore({
@@ -13,6 +14,7 @@ export const store = configureStore({
     bookings: bookingReducer ,
     ticketTypes: tickettypeReducer,
     tickets: ticketsReducer,
+    theme: themeReducer,
   },
 });
 
