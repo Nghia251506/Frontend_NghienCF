@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-primary: 245 158 11;   /* #f59e0b */
+  --color-accent: 239 68 68;     /* #ef4444 */
+  --color-bg: 10 10 10;          /* #0a0a0a */
+  --color-surface: 17 24 39;     /* #111827 */
+  --color-text: 255 255 255;
+  --color-muted: 156 163 175;
+  --color-navbar: 0 0 0;
+
+  /* scrollbar (không cần rgb) */
+  --scrollbar-thumb: #f59e0b;
+  --scrollbar-track: #1f2937;
+}
+
+/* map color token -> class tailwind (nếu bạn đang dùng) */
+.text-primary { color: rgb(var(--color-primary)) !important; }
+.text-accent  { color: rgb(var(--color-accent)) !important; }
+.bg-primary   { background-color: rgb(var(--color-primary)) !important; }
+.bg-navbar    { background-color: rgb(var(--color-navbar)) !important; }
+.bg-bg        { background-color: rgb(var(--color-bg)) !important; }
+.bg-surface   { background-color: rgb(var(--color-surface)) !important; }
+.text-muted   { color: rgb(var(--color-muted)) !important; }
+
+/* scrollbar toàn site */
+*::-webkit-scrollbar{ width:10px; height:10px }
+*::-webkit-scrollbar-thumb{ background: var(--scrollbar-thumb); border-radius:9999px }
+*::-webkit-scrollbar-track{ background: var(--scrollbar-track) }
+*{ scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); scrollbar-width: thin }
