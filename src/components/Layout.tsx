@@ -82,7 +82,7 @@ const Layout: React.FC = () => {
                   style={{
                     color: isActive("/booking")
                       ? "rgb(var(--color-primary))"
-                      : "rgba(var(--color-text), 0.8)",
+                      : "rgb(var(--color-text), 0.8)",
                     backgroundColor: isActive("/booking")
                       ? "rgba(var(--color-primary), 0.2)"
                       : "transparent",
@@ -91,45 +91,17 @@ const Layout: React.FC = () => {
                     !isActive("/booking") &&
                     ((e.currentTarget.style.color = "rgb(var(--color-primary))"),
                     (e.currentTarget.style.backgroundColor =
-                      "rgba(var(--color-text), 0.1)"))
+                      "rgb(var(--color-text), 0.1)"))
                   }
                   onMouseLeave={(e) =>
                     !isActive("/booking") &&
                     ((e.currentTarget.style.color =
-                      "rgba(var(--color-text), 0.8)"),
+                      "rgb(var(--color-text), 0.8)"),
                     (e.currentTarget.style.backgroundColor = "transparent"))
                   }
                 >
                   <CreditCard className="h-4 w-4" />
                   <span>Đặt vé</span>
-                </Link>
-
-                <Link
-                  to="/login"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm sm:text-base transition"
-                  style={{
-                    color: isActive("/login")
-                      ? "rgb(var(--color-primary))"
-                      : "rgba(var(--color-text), 0.8)",
-                    backgroundColor: isActive("/login")
-                      ? "rgba(var(--color-primary), 0.2)"
-                      : "transparent",
-                  }}
-                  onMouseEnter={(e) =>
-                    !isActive("/login") &&
-                    ((e.currentTarget.style.color = "rgb(var(--color-primary))"),
-                    (e.currentTarget.style.backgroundColor =
-                      "rgba(var(--color-text), 0.1)"))
-                  }
-                  onMouseLeave={(e) =>
-                    !isActive("/login") &&
-                    ((e.currentTarget.style.color =
-                      "rgba(var(--color-text), 0.8)"),
-                    (e.currentTarget.style.backgroundColor = "transparent"))
-                  }
-                >
-                  <IoMdLogIn className="h-4 w-4" />
-                  <span>Login</span>
                 </Link>
               </div>
             </div>
