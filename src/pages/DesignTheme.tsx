@@ -3,54 +3,24 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Form, Input, Button, Space, Select } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
-
+import { fetchShows } from "../redux/ShowSlice";
 import {
   fetchTheme as fetchActiveTheme,
   fetchThemeList,
   createThemeThunk,
   updateThemeThunk,
 } from "../redux/ThemeSlice";
-import { fetchShows } from "../redux/ShowSlice";
-
+import { toast } from "react-toastify";
 import type { ThemeDto } from "../types/theme";
 import { defaultTheme } from "../types/theme";
-import { toast } from "react-toastify";
 
-/* ----------------------- helpers ----------------------- */
+/* ---------- utils ---------- */
 const hexToRgb = (hex: string) => {
   if (!hex) return "0 0 0";
   const s = hex.replace("#", "");
-  const v = s.length === 3 ? s.split("").map((c) => c + c).join("") : s;
+  const v = s.length === 3 ? s.split("").map(c => c + c).join("") : s;
   const n = parseInt(v, 16);
   return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
-};
-
-// Chuẩn hoá object từ API -> ThemeDto
-const toThemeDto = (api: any | null | undefined): ThemeDto => {
-  const pick = (obj: any, ...keys: string[]) =>
-    keys.map((k) => obj?.[k]).find((v) => typeof v === "string" && v.trim().length) as
-      | string
-      | undefined;
-
-  if (!api) return { ...defaultTheme };
-
-  return {
-    primaryColor:
-      pick(api, "primaryColor", "primary", "PrimaryColor", "Primary") ??
-      defaultTheme.primaryColor,
-    accent: pick(api, "accent", "Accent") ?? defaultTheme.accent,
-    background: pick(api, "background", "Background") ?? defaultTheme.background,
-    surface: pick(api, "surface", "Surface") ?? defaultTheme.surface,
-    text: pick(api, "text", "Text") ?? defaultTheme.text,
-    muted: pick(api, "muted", "Muted") ?? defaultTheme.muted,
-    navbar: pick(api, "navbar", "Navbar") ?? defaultTheme.navbar,
-    buttonFrom: pick(api, "buttonFrom", "ButtonFrom") ?? defaultTheme.buttonFrom,
-    buttonTo: pick(api, "buttonTo", "ButtonTo") ?? defaultTheme.buttonTo,
-    scrollbarThumb:
-      pick(api, "scrollbarThumb", "ScrollbarThumb") ?? defaultTheme.scrollbarThumb,
-    scrollbarTrack:
-      pick(api, "scrollbarTrack", "ScrollbarTrack") ?? defaultTheme.scrollbarTrack,
-  };
 };
 
 const setIframeTheme = (doc: Document, dto: ThemeDto) => {
@@ -65,12 +35,12 @@ const setIframeTheme = (doc: Document, dto: ThemeDto) => {
   root.style.setProperty("--scrollbar-thumb", dto.scrollbarThumb);
   root.style.setProperty("--scrollbar-track", dto.scrollbarTrack);
 
-  // CSS scrollbar cho iframe
-  const styleId = "theme-scrollbar";
-  let style = doc.getElementById(styleId) as HTMLStyleElement | null;
+  // đảm bảo css scrollbar trong iframe
+  const id = "theme-scrollbar";
+  let style = doc.getElementById(id) as HTMLStyleElement | null;
   if (!style) {
     style = doc.createElement("style");
-    style.id = styleId;
+    style.id = id;
     doc.head.appendChild(style);
   }
   style.textContent = `
@@ -81,90 +51,111 @@ const setIframeTheme = (doc: Document, dto: ThemeDto) => {
   `;
 };
 
-/* Một hàng chọn màu (input text + color) */
 const ColorRow: React.FC<{ name: keyof ThemeDto; label: string; form: any }> = ({
   name,
   label,
   form,
-}) => {
-  const value = Form.useWatch(name as string, form) as string | undefined;
-  return (
-    <Form.Item
-      name={name}
-      label={label}
-      rules={[{ required: true, message: "Nhập màu #RRGGBB" }]}
-      className="mb-3"
-    >
-      <div className="flex gap-2">
-        <Input placeholder="#RRGGBB" className="flex-1" />
-        <input
-          type="color"
-          className="h-10 w-12 rounded-md cursor-pointer"
-          value={value || "#000000"}
-          onChange={(e) => form.setFieldsValue({ [name]: e.target.value })}
-        />
-      </div>
-    </Form.Item>
-  );
-};
+}) => (
+  <Form.Item
+    name={name}
+    label={label}
+    rules={[{ required: true, message: "Nhập màu #RRGGBB" }]}
+    className="mb-3"
+  >
+    <div className="flex gap-2">
+      <Input placeholder="#RRGGBB" className="flex-1" />
+      <input
+        type="color"
+        className="h-10 w-12 rounded-md cursor-pointer"
+        onChange={(e) => form.setFieldsValue({ [name]: e.target.value })}
+      />
+    </div>
+  </Form.Item>
+);
 
-/* ----------------------- Component ----------------------- */
+/* ---------- component ---------- */
 const DesignTheme: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-
-  // dữ liệu global
-  const shows = useSelector((s: RootState) => s.shows.items);
-  const themeList = useSelector((s: RootState) => s.theme.list); // tất cả theme
-  const activeTheme = useSelector((s: RootState) => s.theme.current); // theme FE đang dùng
-
-  // show đang chọn
-  const [selectedShowId, setSelectedShowId] = useState<number | null>(null);
-
   const [form] = Form.useForm<ThemeDto>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // nạp dữ liệu ban đầu
+  // store
+  const { items: shows, loading: loadingShows } = useSelector((s: RootState) => s.shows);
+  const { list: themeList, current: activeTheme, loading: loadingTheme } = useSelector(
+    (s: RootState) => s.theme
+  );
+
+  // show đang chọn (value = showId)
+  const [selectedShowId, setSelectedShowId] = useState<number | null>(null);
+
+  // load dữ liệu
   useEffect(() => {
     dispatch(fetchShows());
     dispatch(fetchThemeList());
     dispatch(fetchActiveTheme());
   }, [dispatch]);
 
-  // lấy theme của show (nếu có)
-  const showThemeRaw = useMemo(() => {
+  // auto chọn show đầu tiên khi shows sẵn sàng
+  useEffect(() => {
+    if (!loadingShows && shows.length > 0 && selectedShowId == null) {
+      setSelectedShowId(shows[0].id!);
+    }
+  }, [loadingShows, shows, selectedShowId]);
+
+  // theme riêng của show (nếu có)
+  const showTheme = useMemo(() => {
     if (selectedShowId == null) return null;
     return themeList.find((t) => t.showId === selectedShowId) ?? null;
   }, [themeList, selectedShowId]);
 
-  // điền form + cập nhật preview khi đổi show / danh sách theme / theme active
+  // Điền form MỖI KHI đã xác định show + dữ liệu đã sẵn sàng
   useEffect(() => {
-    const dto = showThemeRaw
-      ? toThemeDto(showThemeRaw)
-      : activeTheme
-      ? toThemeDto(activeTheme)
-      : toThemeDto(null);
+    if (selectedShowId == null) return;
+    if (loadingShows || loadingTheme) return;
 
-    form.resetFields();
-    form.setFieldsValue(dto);
+    // Ưu tiên theme của show → fallback theme active/global → fallback defaultTheme
+    const base: ThemeDto = {
+      ...defaultTheme,
+      ...(activeTheme ?? {}),
+      ...(showTheme ?? {}),
+    };
+
+    // ĐẢM BẢO KHỚP KEY VỚI Form.Item
+    const values: ThemeDto = {
+      primaryColor: base.primaryColor,
+      accent: base.accent,
+      background: base.background,
+      surface: base.surface,
+      text: base.text,
+      muted: base.muted,
+      navbar: base.navbar,
+      buttonFrom: base.buttonFrom ?? defaultTheme.buttonFrom,
+      buttonTo: base.buttonTo ?? defaultTheme.buttonTo,
+      scrollbarThumb: base.scrollbarThumb,
+      scrollbarTrack: base.scrollbarTrack,
+    };
+
+    form.resetFields();            // clear state cũ (tránh field giữ giá trị)
+    form.setFieldsValue(values);   // set giá trị mới
 
     const doc = iframeRef.current?.contentDocument;
-    if (doc) setIframeTheme(doc, dto);
-  }, [selectedShowId, showThemeRaw, activeTheme, form]);
+    if (doc) setIframeTheme(doc, values);
+  }, [selectedShowId, showTheme, activeTheme, loadingShows, loadingTheme, form]);
 
-  // khi iframe load lần đầu → apply với giá trị hiện tại trong form
+  // khởi tạo theme cho iframe ngay khi load
   const handleIframeLoad = () => {
     const doc = iframeRef.current?.contentDocument;
-    const dto = (form.getFieldsValue() as ThemeDto) || defaultTheme;
-    if (doc) setIframeTheme(doc, dto);
+    const dto = form.getFieldsValue() as ThemeDto;
+    if (doc && dto && dto.primaryColor) setIframeTheme(doc, dto);
   };
 
-  // realtime: thay đổi form → đổi ngay trong iframe
+  // realtime thay đổi
   const onValuesChange = (_: any, all: ThemeDto) => {
     const doc = iframeRef.current?.contentDocument;
     if (doc) setIframeTheme(doc, all);
   };
 
-  // Lưu: có theme của show thì update, không thì create
+  // Lưu
   const onSave = async () => {
     if (selectedShowId == null) {
       toast.info("Vui lòng chọn Show trước khi lưu.");
@@ -173,16 +164,15 @@ const DesignTheme: React.FC = () => {
     const dto = (await form.validateFields()) as ThemeDto;
 
     try {
-      if (showThemeRaw) {
+      if (showTheme) {
         await dispatch(
-          updateThemeThunk({ id: showThemeRaw.id, dto: { ...dto, showId: selectedShowId } })
+          updateThemeThunk({ id: showTheme.id, dto: { ...dto, showId: selectedShowId } })
         ).unwrap();
         toast.success(`Đã cập nhật theme cho show #${selectedShowId}`);
       } else {
         await dispatch(createThemeThunk({ ...dto, showId: selectedShowId })).unwrap();
         toast.success(`Đã tạo theme cho show #${selectedShowId}`);
       }
-      // refresh list để đảm bảo state mới nhất
       await dispatch(fetchThemeList());
     } catch (e: any) {
       toast.error(e?.message || "Lưu theme thất bại");
@@ -191,12 +181,11 @@ const DesignTheme: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      {/* Cột trái: form */}
+      {/* Cột trái: Form */}
       <Card
         title="Thiết lập màu sắc theo Show"
         className="rounded-2xl border border-white/10 bg-white/5 text-white"
       >
-        {/* Chọn show theo ID */}
         <div className="mb-4">
           <label className="block mb-2 text-sm text-gray-300">Chọn Show (theo ID)</label>
           <Select
@@ -206,19 +195,16 @@ const DesignTheme: React.FC = () => {
             optionFilterProp="label"
             value={selectedShowId ?? undefined}
             onChange={(v) => setSelectedShowId(v ?? null)}
-            options={shows.map((s) => ({
-              value: s.id!,
-              label: `#${s.id} — ${s.title}`,
-            }))}
+            options={shows.map((s) => ({ value: s.id!, label: `#${s.id} — ${s.title}` }))}
             allowClear
           />
           <p className="mt-2 text-xs text-gray-400">
-            * Giá trị gửi lên server là <b>showId</b>. Nếu show chưa có theme, khi lưu sẽ tạo mới.
+            * Gửi lên server là <b>showId</b>. Nếu show chưa có theme, khi lưu sẽ tạo mới.
           </p>
         </div>
 
         <Form
-          key={selectedShowId ?? "global"} // ép remount khi đổi show
+          key={`form-${selectedShowId ?? "none"}`}   // ép Form “fresh” khi đổi show
           form={form}
           layout="vertical"
           onValuesChange={onValuesChange}
@@ -236,17 +222,15 @@ const DesignTheme: React.FC = () => {
           </div>
 
           <Space className="mt-4">
-            <Button type="primary" onClick={onSave}>
-              Lưu
-            </Button>
+            <Button type="primary" onClick={onSave}>Lưu</Button>
             {activeTheme && (
               <Button
                 onClick={() => {
-                  const dto = toThemeDto(activeTheme);
+                  const merged = { ...defaultTheme, ...activeTheme };
                   form.resetFields();
-                  form.setFieldsValue(dto);
+                  form.setFieldsValue(merged);
                   const doc = iframeRef.current?.contentDocument;
-                  if (doc) setIframeTheme(doc, dto);
+                  if (doc) setIframeTheme(doc, merged);
                 }}
               >
                 Hoàn tác về theme global
@@ -256,12 +240,11 @@ const DesignTheme: React.FC = () => {
         </Form>
       </Card>
 
-      {/* Cột phải: PREVIEW = layout client thật */}
+      {/* Cột phải: Preview = layout thật */}
       <Card
         title="Preview realtime (layout thật)"
         className="rounded-2xl border border-white/10 bg-white/5 text-white"
       >
-        {/* Nếu muốn ẩn header khi preview có thể dùng "/?embed=1" ở src */}
         <iframe
           ref={iframeRef}
           src="/"
