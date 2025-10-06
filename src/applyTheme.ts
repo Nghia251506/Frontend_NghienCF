@@ -5,14 +5,14 @@ const hexToRgb = (hex: string) => {
 };
 
 export type ThemeDto = {
-  primary: string; accent: string; background: string; surface: string;
+  primaryColor: string; accent: string; background: string; surface: string;
   text: string; muted: string; navbar: string; buttonFrom: string; buttonTo: string;
   scrollbarThumb: string; scrollbarTrack: string;
 };
 
 export function applyTheme(dto: ThemeDto) {
   const root = document.documentElement;
-  root.style.setProperty('--color-primary', hexToRgb(dto.primary));
+  root.style.setProperty('--color-primary', hexToRgb(dto.primaryColor));
   root.style.setProperty('--color-accent', hexToRgb(dto.accent));
   root.style.setProperty('--color-bg', hexToRgb(dto.background));
   root.style.setProperty('--color-surface', hexToRgb(dto.surface));
