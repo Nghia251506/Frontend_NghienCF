@@ -1,19 +1,13 @@
 // src/Auth/PrivateRoute.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import { Navigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../redux/store";
-import { hydrateAuth } from "../redux/UserSlice";
+import { useSelector } from "react-redux";
+import type { RootState } from "../redux/store";
 
 const PrivateRoute: React.FC<{ children: React.ReactElement; role?: string }> = ({ children, role }) => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { currentUser, hydrated, loading } = useSelector((s: RootState) => s.auth);
+  const { currentUser, hasHydrated, loading } = useSelector((s: RootState) => s.auth);
 
-  useEffect(() => {
-    if (!hydrated) dispatch(hydrateAuth());
-  }, [hydrated, dispatch]);
-
-  if (!hydrated || loading) {
+  if (!hasHydrated || loading) {
     return <div className="min-h-screen flex items-center justify-center text-white">Đang kiểm tra đăng nhập…</div>;
   }
 
