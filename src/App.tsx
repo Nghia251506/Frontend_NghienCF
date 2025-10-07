@@ -18,6 +18,7 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "./redux/store";
 import { fetchTheme } from "./redux/ThemeSlice";
 import { applyTheme } from "./applyTheme";
+import PrivateRoute from "./Auth/PrivateRoute";
 
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -50,8 +51,9 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            // giữ PrivateRoute của bạn
-            <LayoutAdmin />
+            <PrivateRoute>
+              <LayoutAdmin />
+            </PrivateRoute>
           }
         >
           <Route index element={<Dashboard />} />
