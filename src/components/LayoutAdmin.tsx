@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../redux/store";
-import { logout } from "../redux/UserSlice";
+import { RootState , AppDispatch } from "../redux/store";
+import { Logout } from "../redux/UserSlice";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -55,12 +55,12 @@ const LayoutAdmin: React.FC = () => {
   const [expandShow, setExpandShow] = useState(true); // toggle group "Quản lý show"
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const { currentUser } = useSelector((s: RootState) => s.auth);
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(Logout());
     toast.success("Đăng xuất thành công!");
     navigate("/login");
   };
