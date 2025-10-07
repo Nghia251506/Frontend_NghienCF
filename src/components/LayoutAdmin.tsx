@@ -56,18 +56,27 @@ const LayoutAdmin: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const { currentUser } = useSelector((s: RootState) => s.auth);
 
-  const handleLogout = () => {
-    dispatch(Logout());
-    toast.success("Đăng xuất thành công!");
-    navigate("/login");
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await dispatch(Logout()).unwrap();           // ✅ chờ thunk hoàn tất
+      toast.success("Đăng xuất thành công!");
+      navigate("/login", { replace: true });       // ✅ quay về login
+    } catch (e: any) {
+      toast.error(e?.message || "Đăng xuất thất bại");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const goto = (to: string) => {
     navigate(to);
-    toast.info(`Đang chuyển đến: ${to.replace("/admin/", "")}`);
+    // toast.info(`Đang chuyển đến: ${to.replace("/admin/", "")}`);
     setOpen(false);
   };
 
