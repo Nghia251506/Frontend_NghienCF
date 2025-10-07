@@ -174,7 +174,7 @@ const ListOrder: React.FC = () => {
           <div className="min-w-[280px]">
             <div className="flex items-center justify-between">
               <Text strong>#{b.id} • {b.customerName}</Text>
-              <span className="text-[12px] text-gray-400">{dayjs(b.createdAt ?? b.paymentTime ?? b.date).format("DD/MM HH:mm")}</span>
+              <span className="text-[12px] text-gray-400">{dayjs(b.createdAt ?? b.paymentTime).format("DD/MM HH:mm")}</span>
             </div>
 
             <div className="mt-1 grid grid-cols-1 gap-1 text-[13px] text-gray-300">
