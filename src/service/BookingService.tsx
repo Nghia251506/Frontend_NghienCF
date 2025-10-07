@@ -6,9 +6,9 @@ import { Booking, BookingDto, BookingResponseDto, CreateBookingDto } from "../ty
 const BOOKING_URL = "/booking";
 
 export const getAllBooking = async (): Promise<Booking[]> => {
-  return await axiosClient.get(`${BOOKING_URL}/getall`, { withCredentials: true });
+  return await axiosClient.get(`${BOOKING_URL}/getall`);
 };
 
 export const createBooking = async (dto: CreateBookingDto): Promise<BookingResponseDto> => {
-  return await axiosClient.post(`${BOOKING_URL}/create`, dto, {withCredentials: true});
+  return await axiosClient.post(`${BOOKING_URL}/create`, dto);
 };
