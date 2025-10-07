@@ -49,7 +49,6 @@ const ListOrder: React.FC = () => {
     const init = async () => {
       try {
         const first = await dispatch(fetchBookings()).unwrap();
-        console.log("Data API: ", first);
         const s = new Set<number>();
         first?.forEach((b: Booking) => s.add(b.id));
         seenIdsRef.current = s;
@@ -184,7 +183,7 @@ const ListOrder: React.FC = () => {
               </div>
               <div className="truncate">
                 <span className="text-gray-400">Show:</span>{" "}
-                <span title={b._showTitle || "-"}>{b._showTitle || "-"}</span>
+                <span title={b.show?.title || "-"}>{b.show?.title || "-"}</span>
               </div>
               <div className="truncate">
                 <span className="text-gray-400">Loại vé:</span>{" "}
@@ -201,7 +200,7 @@ const ListOrder: React.FC = () => {
                         background:
                           /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(b._ticketColor.toLowerCase()) ||
                           /(rgb|hsl)/i.test(b._ticketColor)
-                            ? b._ticketColor
+                            ? b.ticketType?.color
                             : ({ red: "#ef4444", gold: "#f59e0b", silver: "#c0c0c0" } as any)[b._ticketColor.toLowerCase()] ||
                               b._ticketColor || "#999",
                       }}
@@ -250,29 +249,29 @@ const ListOrder: React.FC = () => {
       },
       {
         title: "Show",
-        dataIndex: "_showTitle",
+        dataIndex: "showTitle",
         width: 200,
         align: "center",
         responsive: ["md"],
-        render: (_: any, b) => b._showTitle || "-",
+        render: (_: any, b) => b.show?.title || "-",
       },
       {
         title: "Loại vé",
-        dataIndex: "_ticketTypeName",
+        dataIndex: "ticketTypeName",
         width: 160,
         align: "center",
         responsive: ["md"],
-        render: (_: any, b) => b._ticketTypeName || "-",
+        render: (_: any, b) => b.ticketType?.name || "-",
       },
       {
         title: "Màu vé",
-        dataIndex: "_ticketColor",
+        dataIndex: "ticketTypeColor",
         width: 150,
         align: "center",
         responsive: ["lg"],
         render: (_: any, b) => {
-          const color = (b._ticketColor || "").toLowerCase();
-          return b._ticketColor ? (
+          const color = (b.ticketType?.color || "").toLowerCase();
+          return b.ticketType?.color ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <span
                 style={{
@@ -287,7 +286,7 @@ const ListOrder: React.FC = () => {
                         color || "#999",
                 }}
               />
-              <span>{b._ticketColor}</span>
+              <span>{b.ticketType.color}</span>
             </span>
           ) : (
             "-"

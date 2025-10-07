@@ -152,7 +152,7 @@ const AddShow: React.FC = () => {
                   beforeUpload={() => false}  // không upload tự động
                   maxCount={1}
                   onChange={({ fileList }) => setFileList(fileList)}
-                  accept="image/*"
+                  accept="upload/*"
                 >
                   <Button icon={<UploadOutlined />} size="large">
                     Chọn ảnh
