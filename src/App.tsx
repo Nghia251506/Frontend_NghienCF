@@ -1,6 +1,5 @@
-// src/App.tsx
 import React, { useEffect, useLayoutEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import LayoutAdmin from "./components/LayoutAdmin";
 import Home from "./pages/Home";
@@ -19,40 +18,28 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "./redux/store";
 import { fetchTheme } from "./redux/ThemeSlice";
 import { applyTheme } from "./applyTheme";
-import PrivateRoute from "./Auth/PrivateRoute";
-import { hydrateAuth } from "./redux/UserSlice"; // 👈 thunk hydrate
 
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { current: theme, loading: themeLoading } = useSelector((s: RootState) => s.theme);
-  const { loading: authLoading } = useSelector((s: RootState) => s.auth);
+  const { current: theme, loading } = useSelector((s: RootState) => s.theme);
   const [bootstrapped, setBootstrapped] = useState(false);
 
-  // 1) hydrate phiên dựa trên cookie
-  useEffect(() => {
-    dispatch(hydrateAuth());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchTheme()); }, [dispatch]);
 
-  // 2) nạp theme đang active
-  useEffect(() => {
-    dispatch(fetchTheme());
-  }, [dispatch]);
-
-  // 3) bơm biến theme càng sớm càng tốt + đợi cả auth/theme xong mới render app
+  // bơm biến càng sớm càng tốt
   useLayoutEffect(() => {
     if (theme) applyTheme(theme);
-    if (!themeLoading && !authLoading) setBootstrapped(true);
-  }, [theme, themeLoading, authLoading]);
+    if (!loading) setBootstrapped(true);
+  }, [theme, loading]);
 
   if (!bootstrapped) {
-    // Splash rất nhẹ để tránh flash
-    return <div style={{ minHeight: "100vh", background: "rgb(var(--color-bg))" }} />;
+    // Splash rất nhẹ để tránh "flash trắng"
+    return <div style={{minHeight:'100vh', background:'rgb(var(--color-bg))'}} />;
   }
 
   return (
     <Router>
       <Routes>
-        {/* CLIENT */}
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/booking" element={<Booking />} />
@@ -60,13 +47,11 @@ export default function App() {
           <Route path="/login" element={<Login />} />
         </Route>
 
-        {/* ADMIN - BỌC PRIVATE */}
         <Route
           path="/admin"
           element={
-            <PrivateRoute>
-              <LayoutAdmin />
-            </PrivateRoute>
+            // giữ PrivateRoute của bạn
+            <LayoutAdmin />
           }
         >
           <Route index element={<Dashboard />} />

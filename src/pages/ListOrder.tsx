@@ -49,6 +49,7 @@ const ListOrder: React.FC = () => {
     const init = async () => {
       try {
         const first = await dispatch(fetchBookings()).unwrap();
+        console.log("Data API: ", first);
         const s = new Set<number>();
         first?.forEach((b: Booking) => s.add(b.id));
         seenIdsRef.current = s;
