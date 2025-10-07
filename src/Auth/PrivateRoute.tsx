@@ -1,24 +1,25 @@
+// src/Auth/PrivateRoute.tsx
+import React, { useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { useSelector } from "react-redux";
-import { RootState } from "../redux/store";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "../redux/store";
+import { hydrateAuth } from "../redux/UserSlice";
 
-interface PrivateRouteProps {
-  children: JSX.Element;
-  role?: string; // optional: admin | user
-}
+const PrivateRoute: React.FC<{ children: React.ReactElement; role?: string }> = ({ children, role }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { currentUser, hydrated, loading } = useSelector((s: RootState) => s.auth);
 
-const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, role }) => {
-  const { currentUser } = useSelector((state: RootState) => state.auth);
+  useEffect(() => {
+    if (!hydrated) dispatch(hydrateAuth());
+  }, [hydrated, dispatch]);
 
-  // chưa đăng nhập
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
+  if (!hydrated || loading) {
+    return <div className="min-h-screen flex items-center justify-center text-white">Đang kiểm tra đăng nhập…</div>;
   }
 
-  // có yêu cầu role nhưng user không khớp
-  if (role && currentUser.role !== role) {
-    return <Navigate to="/" replace />; // hoặc 403 page
-  }
+  if (!currentUser) return <Navigate to="/login" replace />;
+
+  if (role && currentUser.role !== role) return <Navigate to="/" replace />;
 
   return children;
 };
