@@ -3,7 +3,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 
 const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true,
+  withCredentials: false,
 });
 
 // request interceptor
@@ -12,6 +12,7 @@ axiosClient.interceptors.request.use((config) => {
   if (token) {
     // Header kiểu AxiosHeaders có set()
     config.headers = config.headers ?? {};
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
 });
