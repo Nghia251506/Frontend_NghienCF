@@ -17,8 +17,10 @@ export const login = async (dto: LoginDto): Promise<AuthResponse> => {
 // };
 
 /** Đăng xuất: server sẽ xoá cookie 'atk' */
-// export const logout = async (): Promise<void> => {
-//   await axiosClient.post<void>(`${USER_URL}/logout`, null, {
-//     withCredentials: true,
-//   });
-// };
+export const logout = async (): Promise<void> => {
+  // Nếu bạn lưu token ở localStorage/sessionStorage:
+  localStorage.removeItem("access_token");
+
+  // Nếu bạn lưu ở Redux hoặc context: hãy dispatch action logout tại đây (thường làm ở component)
+  // ví dụ: dispatch(clearAuth());
+};
