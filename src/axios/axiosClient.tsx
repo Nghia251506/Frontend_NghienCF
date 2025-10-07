@@ -12,7 +12,6 @@ axiosClient.interceptors.request.use((config) => {
   if (token) {
     // Header kiểu AxiosHeaders có set()
     config.headers = config.headers ?? {};
-    (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
 });
