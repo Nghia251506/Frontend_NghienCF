@@ -30,17 +30,7 @@ export const Login = createAsyncThunk<AuthResponse, LoginDto>(
       // Lưu vào localStorage
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res.user));
-
-
-
-
-
       return res;
-
-
-
-
-
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || "Login failed");
     }

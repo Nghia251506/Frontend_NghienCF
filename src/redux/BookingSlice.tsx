@@ -1,6 +1,6 @@
-// redux/BookingSlice.ts
+// src/redux/BookingSlice.ts
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Booking, CreateBookingDto, BookingResponseDto } from "../types/Booking";
+import type { Booking, CreateBookingDto, BookingResponseDto } from "../types/Booking";
 import {
   getAllBooking as apiGetAllBookings,
   createBooking as apiCreateBooking,
@@ -27,8 +27,8 @@ export const fetchBookings = createAsyncThunk<Booking[]>(
   "bookings/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await apiGetAllBookings(); // nếu axiosClient trả AxiosResponse => return res.data
-      return res;
+      const data = await apiGetAllBookings(); // đã là data
+      return data;
     } catch (err: any) {
       return rejectWithValue(
         err?.response?.data?.message || err?.message || "Fetch bookings failed"
@@ -37,20 +37,20 @@ export const fetchBookings = createAsyncThunk<Booking[]>(
   }
 );
 
-// POST /booking/create
-export const createBooking = createAsyncThunk<
-  BookingResponseDto,
-  CreateBookingDto
->("bookings/create", async (dto, { rejectWithValue }) => {
-  try {
-    const res = await apiCreateBooking(dto); // nếu AxiosResponse => return res.data
-    return res;
-  } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.message || err?.message || "Create booking failed"
-    );
+// POST /booking/create  (body phẳng)
+export const createBooking = createAsyncThunk<BookingResponseDto, CreateBookingDto>(
+  "bookings/create",
+  async (dto, { rejectWithValue }) => {
+    try {
+      const data = await apiCreateBooking(dto); // đã là data
+      return data;
+    } catch (err: any) {
+      return rejectWithValue(
+        err?.response?.data?.message || err?.message || "Create booking failed"
+      );
+    }
   }
-});
+);
 
 const bookingSlice = createSlice({
   name: "bookings",
@@ -88,26 +88,29 @@ const bookingSlice = createSlice({
         state.creating = true;
         state.error = null;
       })
-      .addCase(createBooking.fulfilled, (state, action) => {
-        state.creating = false;
-        state.lastCreate = action.payload; // { bookingId, totalAmount, paymentQrUrl }
+      .addCase(
+        createBooking.fulfilled,
+        (state, action: ReturnType<typeof createBooking.fulfilled>) => {
+          state.creating = false;
+          state.lastCreate = action.payload;
 
-        // Map từ meta.arg (dto gửi lên) + payload -> Booking để thêm vào bảng
-        const dto = action.meta.arg;
-        const created: Booking = {
-          id: action.payload.bookingId,
-          showId: dto.showId,
-          ticketTypeId: dto.ticketTypeId,
-          customerName: dto.customerName,
-          phone: dto.phone,
-          quantity: dto.quantity,
-          totalAmount: action.payload.totalAmount,
-          paymentStatus: "pending",
-          paymentTime: null, // chờ webhook / job cập nhật
-          createdAt: null
-        };
-        state.items.unshift(created);
-      })
+          const dto = action.meta.arg; // <-- có type CreateBookingDto ở đây
+
+          const created: Booking = {
+            id: action.payload.bookingId,
+            showId: dto.showId,
+            ticketTypeId: dto.ticketTypeId,
+            customerName: dto.customerName,
+            phone: dto.phone,
+            quantity: dto.quantity,
+            totalAmount: action.payload.totalAmount,
+            paymentStatus: "pending",
+            paymentTime: null,
+            createdAt: null,
+          };
+          state.items.unshift(created);
+        }
+      )
       .addCase(createBooking.rejected, (state, action) => {
         state.creating = false;
         state.error =

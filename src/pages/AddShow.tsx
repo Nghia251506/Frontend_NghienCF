@@ -43,7 +43,7 @@ const AddShow: React.FC = () => {
         description: (values.description || "").trim(),
         date: dateIso,
         location: (values.location || "").trim(),
-        capacity: typeof values.capacity === "number" ? values.capacity : Number(values.capacity ?? 0),
+        capacity: String(values.capacity ?? "").trim(),
         slogan: (values.slogan || "").trim(),
         ...(bannerUrl ? { bannerUrl } : {}),
       };

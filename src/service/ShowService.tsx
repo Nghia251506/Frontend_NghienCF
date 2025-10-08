@@ -12,13 +12,13 @@ export const getShowByType = async (title: string): Promise<Show> => {
 };
 
 export const createShow = async (dto: ShowCreateDto): Promise<Show> => {
-  return await axiosClient.post(SHOW_URL, dto, { withCredentials: true });
+  return await axiosClient.post(SHOW_URL, dto);
 };
 
 export const updateShow = async (title: string, show: Show): Promise<void> => {
-  await axiosClient.put(`${SHOW_URL}/${title}`, show, { withCredentials: true });
+  await axiosClient.put(`${SHOW_URL}/${title}`, show);
 };
 
 export const deleteShow = async (id: number): Promise<void> => {
-  await axiosClient.delete(`${SHOW_URL}/${id}`, { withCredentials: true });
+  await axiosClient.delete(`${SHOW_URL}/${id}`);
 };

@@ -8,17 +8,17 @@ export const getByShowId = async (showId: number): Promise<TicketType[]> => {
 };
 
 export const getAllTypes = async (): Promise<TicketType[]> => {
-  return await axiosClient.get(`${TICKETTYPE_URL}/getall`, { withCredentials: true });
+  return await axiosClient.get(`${TICKETTYPE_URL}/getall`);
 };
 
 export const createType = async (dto: TicketTypeCreateDto): Promise<TicketType> => {
-  return await axiosClient.post(TICKETTYPE_URL, dto, { withCredentials: true });
+  return await axiosClient.post(TICKETTYPE_URL, dto);
 };
 
 export const updateType = async (id: number, type: TicketType): Promise<void> => {
-  await axiosClient.put(`${TICKETTYPE_URL}/${id}`, type, { withCredentials: true });
+  await axiosClient.put(`${TICKETTYPE_URL}/${id}`, type);
 };
 
 export const deleteType = async (id: number): Promise<void> => {
-  await axiosClient.delete(`${TICKETTYPE_URL}/${id}`, { withCredentials: true });
+  await axiosClient.delete(`${TICKETTYPE_URL}/${id}`);
 };

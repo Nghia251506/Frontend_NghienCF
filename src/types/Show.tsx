@@ -14,6 +14,6 @@ export interface ShowCreateDto{
     date: string;
     location: string;
     bannerUrl: string;
-    capacity: number;
+    capacity: string;
     slogan: string;
 }

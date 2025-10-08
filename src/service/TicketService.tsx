@@ -10,12 +10,12 @@ export const getAllTickets = async (query?: TicketQuery): Promise<Ticket[]> => {
 
 // GET /api/ticket/by-booking/{bookingId}
 export const getTicketsByBooking = async (bookingId: number): Promise<Ticket[]> => {
-  return await axiosClient.get(`${TICKET_URL}/by-booking/${bookingId}`, { withCredentials: true });
+  return await axiosClient.get(`${TICKET_URL}/by-booking/${bookingId}`);
 };
 
 // (tuỳ nhu cầu) GET /api/ticket/{id}
 export const getTicketById = async (id: number): Promise<Ticket> => {
-  return await axiosClient.get(`${TICKET_URL}/${id}`, { withCredentials: true });
+  return await axiosClient.get(`${TICKET_URL}/${id}`);
 };
 
 // POST /api/ticket/create
@@ -25,10 +25,10 @@ export const createTicket = async (dto: TicketCreateDto): Promise<Ticket> => {
 
 // PUT /api/ticket/{id}
 export const updateTicket = async (id: number, dto: TicketUpdateDto): Promise<Ticket> => {
-  return await axiosClient.put(`${TICKET_URL}/${id}/status`, dto, { withCredentials: true });
+  return await axiosClient.put(`${TICKET_URL}/${id}/status`, dto);
 };
 
 // DEV: POST /api/dev-pay/{bookingId}
 export const devForcePay = async (bookingId: number): Promise<void> => {
-  await axiosClient.post(`dev-pay/${bookingId}`, { withCredentials: true });
+  await axiosClient.post(`dev-pay/${bookingId}`);
 };
