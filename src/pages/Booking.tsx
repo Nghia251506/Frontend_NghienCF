@@ -143,7 +143,7 @@ const Booking: React.FC = () => {
       };
       const res = await dispatch(createBooking(dto)).unwrap();
 
-      setBookingData({
+      const payload = {
         customerName: formData.customerName.trim(),
         phone: formData.phone.trim(),
         combo: selectedType.name,
@@ -153,9 +153,10 @@ const Booking: React.FC = () => {
         paymentQrUrl: res.paymentQrUrl,
         paymentQrImage: res.paymentQrImage,
         paymentQrString: res.paymentQrString,
-      } as BookingDataForContext);
-
-      navigate("/payment");
+      };
+      setBookingData(payload);
+      sessionStorage.setItem("bookingData", JSON.stringify(payload));
+      navigate("/payment", { replace: true });
     } catch (err: any) {
       const msg =
         err?.response?.data?.message || err?.message || "Tạo đơn thất bại. Vui lòng thử lại.";
