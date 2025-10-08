@@ -22,20 +22,6 @@ const initialState: AuthState = {
 
 // thunk login
 export const Login = createAsyncThunk<AuthResponse, LoginDto>(
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   "auth/login",
   async (dto, { rejectWithValue }) => {
     try {
@@ -60,7 +46,7 @@ export const Login = createAsyncThunk<AuthResponse, LoginDto>(
     }
   }
 );
-@@ -40,36 +62,56 @@ const AuthSlice = createSlice({
+const AuthSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
