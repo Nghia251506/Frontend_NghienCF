@@ -1,27 +1,27 @@
-// src/Auth/PrivateRoute.tsx
-import React from "react";
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import type { RootState } from "../redux/store";
+import { RootState } from "../redux/store";
 
-const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-  const { currentUser, hasHydrated, loading } = useSelector((s: RootState) => s.auth);
 
-  // Trong lúc Redux chưa load xong user => hiện màn hình chờ
-  if (!hasHydrated || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Đang kiểm tra đăng nhập…
-      </div>
-    );
-  }
+interface PrivateRouteProps {
+  children: JSX.Element;
+  role?: string; // optional: admin | user
+}
 
-  // Nếu chưa đăng nhập => đẩy về trang login
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, role }) => {
+  const { currentUser } = useSelector((state: RootState) => state.auth);
+
+
+  // chưa đăng nhập
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  // Nếu đã đăng nhập => render children
+  // có yêu cầu role nhưng user không khớp
+  if (role && currentUser.role !== role) {
+    return <Navigate to="/" replace />; // hoặc 403 page
+  }
+
   return children;
 };
 
