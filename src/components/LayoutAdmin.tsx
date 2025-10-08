@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState , AppDispatch } from "../redux/store";
-import { Logout } from "../redux/UserSlice";
+import { logout } from "../redux/UserSlice";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -64,7 +64,7 @@ const LayoutAdmin: React.FC = () => {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
-      await dispatch(Logout()).unwrap();           // ✅ chờ thunk hoàn tất
+      await dispatch(logout());           // ✅ chờ thunk hoàn tất
       toast.success("Đăng xuất thành công!");
       navigate("/login", { replace: true });       // ✅ quay về login
     } catch (e: any) {
