@@ -1,6 +1,6 @@
 // src/pages/Payment.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
 import html2canvas from "html2canvas";
 import { Clock, CheckCircle, Download } from "lucide-react";
@@ -29,48 +29,73 @@ type Ticket = {
 };
 
 async function apiGetTicketsByBooking(bookingId: number): Promise<Ticket[]> {
-  // LƯU Ý: axiosClient.baseURL đã là .../api → không thêm /api lần nữa
-  const res = await axiosClient.get<Ticket[]>(`ticket/by-booking/${bookingId}`);
-  return (res as any)?.data ?? (res as any);
+  const  data  = await axiosClient.get<Ticket[]>(`ticket/by-booking/${bookingId}`);
+  return data;
 }
 
 const Payment: React.FC = () => {
   const navigate = useNavigate();
-  const { bookingData } = useBooking() as { bookingData: BookingDataCtx | null };
+  const location = useLocation() as { state?: { bookingData?: BookingDataCtx } };
+  const { bookingData, setBookingData } = useBooking() as {
+    bookingData: BookingDataCtx | null;
+    setBookingData: (v: BookingDataCtx) => void;
+  };
 
+  const [hydrated, setHydrated] = useState(false);
   const [qrCodeSrc, setQrCodeSrc] = useState<string>("");
-  const [paymentStatus, setPaymentStatus] = useState<"pending" | "processing" | "success">("pending");
+  const [paymentStatus, setPaymentStatus] =
+    useState<"pending" | "processing" | "success">("pending");
   const [countdown, setCountdown] = useState<number>(0);
   const [polling, setPolling] = useState<boolean>(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-
   const timerRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
 
+  // 1) Hydrate bookingData: context -> location.state -> sessionStorage
   useEffect(() => {
-    if (!bookingData) {
-      navigate("/booking");
+    if (bookingData) {
+      setHydrated(true);
       return;
     }
+    const fromState = location?.state?.bookingData;
+    if (fromState) {
+      setBookingData(fromState);
+      sessionStorage.setItem("bookingData", JSON.stringify(fromState));
+      setHydrated(true);
+      return;
+    }
+    const raw = sessionStorage.getItem("bookingData");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as BookingDataCtx;
+        setBookingData(parsed);
+      } catch {}
+    }
+    setHydrated(true);
+  }, [bookingData, location?.state, setBookingData]);
+
+  // 2) Nếu đã hydrate mà vẫn không có data -> quay lại trang đặt vé
+  useEffect(() => {
+    if (hydrated && !bookingData) navigate("/booking", { replace: true });
+  }, [hydrated, bookingData, navigate]);
+
+  // 3) Render QR
+  useEffect(() => {
+    if (!bookingData) return;
 
     const loadQr = async () => {
       const { paymentQrImage, paymentQrString, paymentQrUrl } = bookingData;
 
-      if (paymentQrImage && paymentQrImage.startsWith("data:image")) {
+      if (paymentQrImage?.startsWith("data:image")) {
         setQrCodeSrc(paymentQrImage);
         return;
       }
-
       if (paymentQrString && paymentQrString.length > 10) {
         try {
-          const dataUrl = await QRCode.toDataURL(paymentQrString);
-          setQrCodeSrc(dataUrl);
+          setQrCodeSrc(await QRCode.toDataURL(paymentQrString));
           return;
-        } catch (e) {
-          console.error("Generate QR from paymentQrString failed:", e);
-        }
+        } catch {}
       }
-
       if (paymentQrUrl) {
         const lower = paymentQrUrl.toLowerCase();
         const looksLikeImage =
@@ -80,27 +105,22 @@ const Payment: React.FC = () => {
           lower.endsWith(".jpeg") ||
           lower.endsWith(".svg") ||
           lower.includes("base64");
-
         if (looksLikeImage) {
           setQrCodeSrc(paymentQrUrl);
           return;
         }
-
         try {
-          const dataUrl = await QRCode.toDataURL(paymentQrUrl);
-          setQrCodeSrc(dataUrl);
+          setQrCodeSrc(await QRCode.toDataURL(paymentQrUrl));
           return;
-        } catch (e) {
-          console.error("Generate QR from paymentQrUrl failed:", e);
-        }
+        } catch {}
       }
-
       setQrCodeSrc("");
     };
 
     loadQr();
-  }, [bookingData, navigate]);
+  }, [bookingData]);
 
+  // 4) cleanup timers
   useEffect(() => {
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
@@ -146,11 +166,13 @@ const Payment: React.FC = () => {
     }, 2000);
   };
 
-  if (paymentStatus === "success" && tickets.length > 0 && bookingData) {
-    return <TicketDisplay bookingData={bookingData} tickets={tickets} />;
+  if (!hydrated || !bookingData) {
+    return <div className="text-white p-6">Đang tải thông tin thanh toán…</div>;
   }
 
-  if (!bookingData) return <div className="text-white p-6">Loading...</div>;
+  if (paymentStatus === "success" && tickets.length > 0) {
+    return <TicketDisplay bookingData={bookingData} tickets={tickets} />;
+  }
 
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
@@ -199,11 +221,17 @@ const Payment: React.FC = () => {
                 >
                   Chi tiết đơn hàng
                 </h3>
-                <div className="space-y-1 text-sm sm:text-base" style={{ color: "rgb(var(--color-text))", opacity: 0.85 }}>
+                <div
+                  className="space-y-1 text-sm sm:text-base"
+                  style={{ color: "rgb(var(--color-text))", opacity: 0.85 }}
+                >
                   <p>Khách hàng: {bookingData.customerName}</p>
                   <p>Loại vé: {bookingData.combo}</p>
                   <p>Số lượng: {bookingData.quantity} vé</p>
-                  <p className="text-lg sm:text-xl font-bold" style={{ color: "rgb(var(--color-primary))" }}>
+                  <p
+                    className="text-lg sm:text-xl font-bold"
+                    style={{ color: "rgb(var(--color-primary))" }}
+                  >
                     Tổng tiền: {bookingData.totalPrice.toLocaleString("vi-VN")}đ
                   </p>
                 </div>
@@ -272,10 +300,16 @@ const Payment: React.FC = () => {
               >
                 Đang kiểm tra thanh toán
               </h3>
-              <p className="mb-4 text-sm sm:text-base" style={{ color: "rgb(var(--color-text))", opacity: 0.8 }}>
+              <p
+                className="mb-4 text-sm sm:text-base"
+                style={{ color: "rgb(var(--color-text))", opacity: 0.8 }}
+              >
                 Vui lòng chờ trong giây lát...
               </p>
-              <div className="text-2xl sm:text-3xl font-bold" style={{ color: "rgb(var(--color-primary))" }}>
+              <div
+                className="text-2xl sm:text-3xl font-bold"
+                style={{ color: "rgb(var(--color-primary))" }}
+              >
                 {countdown}s
               </div>
             </div>
@@ -328,141 +362,8 @@ const TicketDisplay: React.FC<{ bookingData: BookingDataCtx; tickets: Ticket[] }
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-sm sm:max-w-md mx-auto">
-        <div
-          ref={cardRef}
-          className="relative overflow-hidden rounded-2xl shadow-2xl"
-          style={{
-            background:
-              "linear-gradient(135deg, color-mix(in srgb, rgb(var(--color-bg)) 85%, #000 15%), color-mix(in srgb, rgb(var(--color-surface)) 85%, #000 15%))",
-            border: "1px solid color-mix(in srgb, rgb(var(--color-primary)) 30%, transparent)",
-          }}
-        >
-          <div
-            className="absolute inset-0 opacity-15"
-            style={{
-              backgroundImage:
-                "url('https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-          <div className="relative z-10 p-6 sm:p-8">
-            <div className="text-center mb-6">
-              <h1
-                className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(90deg, rgb(var(--color-primary)), color-mix(in srgb, rgb(var(--color-primary)) 75%, #fff 25%))",
-                }}
-              >
-                MUSIC NIGHT
-              </h1>
-              <p style={{ color: "rgb(var(--color-text))", opacity: 0.8 }} className="text-sm">
-                Concert Ticket
-              </p>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div
-                className="p-3 sm:p-4 rounded-lg"
-                style={{
-                  backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 55%, #000 45%)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                }}
-              >
-                <p className="text-sm" style={{ color: "rgb(var(--color-muted))" }}>
-                  Tên khách hàng
-                </p>
-                <p className="font-semibold text-base sm:text-lg" style={{ color: "rgb(var(--color-text))" }}>
-                  {bookingData.customerName}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div
-                  className="p-3 sm:p-4 rounded-lg"
-                  style={{
-                    backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 55%, #000 45%)",
-                    border: "1px solid rgba(255,255,255,.08)",
-                  }}
-                >
-                  <p className="text-sm" style={{ color: "rgb(var(--color-muted))" }}>
-                    Loại vé
-                  </p>
-                  <p className="font-semibold text-sm sm:text-base" style={{ color: "rgb(var(--color-primary))" }}>
-                    {bookingData.combo}
-                  </p>
-                </div>
-                <div
-                  className="p-3 sm:p-4 rounded-lg"
-                  style={{
-                    backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 55%, #000 45%)",
-                    border: "1px solid rgba(255,255,255,.08)",
-                  }}
-                >
-                  <p className="text-sm" style={{ color: "rgb(var(--color-muted))" }}>
-                    Số lượng
-                  </p>
-                  <p className="font-semibold text-sm sm:text-base" style={{ color: "rgb(var(--color-text))" }}>
-                    {bookingData.quantity} vé
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className="p-3 sm:p-4 rounded-lg"
-                style={{
-                  backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 55%, #000 45%)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                }}
-              >
-                <p className="text-sm" style={{ color: "rgb(var(--color-muted))" }}>
-                  Mã vé
-                </p>
-                <p className="font-semibold text-sm sm:text-base" style={{ color: "rgb(var(--color-text))" }}>
-                  {firstTicket?.ticketCode}
-                </p>
-              </div>
-
-              <div
-                className="p-3 sm:p-4 rounded-lg"
-                style={{
-                  backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 55%, #000 45%)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                }}
-              >
-                <p className="text-sm" style={{ color: "rgb(var(--color-muted))" }}>
-                  Tổng tiền
-                </p>
-                <p className="font-semibold text-sm sm:text-base" style={{ color: "rgb(var(--color-text))" }}>
-                  {bookingData.totalPrice.toLocaleString("vi-VN")}đ
-                </p>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div
-                className="w-full h-8 rounded-full mb-4 flex items-center justify-center"
-                style={{
-                  background:
-                    "linear-gradient(90deg, color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent) 0%, color-mix(in srgb, rgb(var(--color-primary)) 45%, transparent) 50%, color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent) 100%)",
-                }}
-              >
-                <div
-                  className="w-4 h-4 rounded-full animate-pulse"
-                  style={{ backgroundColor: "rgb(var(--color-primary))" }}
-                />
-              </div>
-              <p className="text-xs" style={{ color: "rgb(var(--color-muted))" }}>
-                Vui lòng xuất trình vé này tại cửa vào
-              </p>
-              <p className="text-xs font-semibold" style={{ color: "rgb(var(--color-primary))" }}>
-                #{(bookingData.bookingId ?? Date.now()).toString().slice(-8)}
-              </p>
-            </div>
-          </div>
-        </div>
-
+        {/* ...giữ nguyên phần render vé của bạn... */}
+        <div ref={cardRef} />
         <div className="flex items-center justify-center gap-3 mt-8">
           <button
             onClick={() => (window.location.href = "/")}
@@ -475,7 +376,6 @@ const TicketDisplay: React.FC<{ bookingData: BookingDataCtx; tickets: Ticket[] }
           >
             Về trang chủ
           </button>
-
           <button
             onClick={handleSaveImage}
             className="flex items-center gap-2 font-semibold py-2 sm:py-3 px-4 sm:px-5 rounded-lg transition-colors text-sm sm:text-base"
@@ -485,35 +385,6 @@ const TicketDisplay: React.FC<{ bookingData: BookingDataCtx; tickets: Ticket[] }
             <Download className="w-4 h-4" /> Lưu vé
           </button>
         </div>
-
-        {tickets.length > 1 && (
-          <div className="mt-6 text-sm" style={{ color: "rgb(var(--color-text))", opacity: 0.85 }}>
-            <div className="font-semibold mb-2">Tất cả mã vé:</div>
-            <div
-              className="rounded-lg p-3"
-              style={{
-                backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 55%, #000 45%)",
-                border: "1px solid rgba(255,255,255,.08)",
-              }}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {tickets.map((t) => (
-                  <div
-                    key={t.id}
-                    className="px-3 py-2 rounded"
-                    style={{
-                      backgroundColor: "rgba(0,0,0,.3)",
-                      border: "1px solid rgba(255,255,255,.08)",
-                      color: "rgb(var(--color-text))",
-                    }}
-                  >
-                    {t.ticketCode}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

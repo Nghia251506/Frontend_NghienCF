@@ -156,7 +156,7 @@ const Booking: React.FC = () => {
       };
       setBookingData(payload);
       sessionStorage.setItem("bookingData", JSON.stringify(payload));
-      navigate("/payment", { replace: true });
+      navigate("/payment", { replace: true, state: { bookingData: payload } });
     } catch (err: any) {
       const msg =
         err?.response?.data?.message || err?.message || "Tạo đơn thất bại. Vui lòng thử lại.";
