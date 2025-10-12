@@ -6,12 +6,10 @@ const BOOKING_URL = "/booking";
 
 // GET /booking/getall
 export const getAllBooking = async (): Promise<Booking[]> => {
-  const  data  = await axiosClient.get<Booking[]>(`${BOOKING_URL}/getall`);
-  return data;
+  return await axiosClient.get<Booking[]>(`${BOOKING_URL}/getall`);
 };
 
 // POST /booking/create  (body phẳng, KHÔNG bọc { dto })
 export const createBooking = async (dto: CreateBookingDto): Promise<BookingResponseDto> => {
-  const  data  = await axiosClient.post<BookingResponseDto>(`${BOOKING_URL}/create`, dto);
-  return data;
+  return await axiosClient.post<BookingResponseDto>(`${BOOKING_URL}/create`, dto);
 };

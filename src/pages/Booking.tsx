@@ -142,6 +142,7 @@ const Booking: React.FC = () => {
         quantity: formData.quantity,
       };
       const res = await dispatch(createBooking(dto)).unwrap();
+      console.debug("createBooking OK:", res);
 
       const payload = {
         customerName: formData.customerName.trim(),
