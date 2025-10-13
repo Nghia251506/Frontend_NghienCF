@@ -1,4 +1,3 @@
-// src/pages/Booking.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,11 +18,11 @@ type BookingDataForContext = {
   seatNumbers?: string[];
   bookingId?: number;
   paymentQrUrl?: string;
-  paymentQrImage?: string;
-  paymentQrString?: string;
+  paymentQrImage?: string;   // thêm để Payment dùng nếu backend trả ảnh base64
+  paymentQrString?: string;  // thêm để Payment tự render ảnh từ chuỗi 000201...
 };
 
-const POLL_MS = 15000;
+
 
 const Booking: React.FC = () => {
   const navigate = useNavigate();
@@ -31,58 +30,47 @@ const Booking: React.FC = () => {
   const { setBookingData } = useBooking();
   const formRef = useRef<HTMLDivElement>(null);
 
-  // Redux
-  const { items: shows, defaultId } = useSelector((s: RootState) => s.shows);
+  // Redux state
+  const { items: shows, defaultId, loading } = useSelector((s: RootState) => s.shows);
+
+  // Ticket types trong slice nên load theo showId (thunk fetchTicketTypes(showId))
   const types = useSelector((s: RootState) => s.ticketTypes.items);
   const loadingTypes = useSelector((s: RootState) => s.ticketTypes.loading);
 
-  // Local
+  // local state
   const selectedShowId = defaultId ?? (shows.length > 0 ? shows[0].id! : null);
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ customerName: "", phone: "", quantity: 1 });
+  const [formData, setFormData] = useState({
+    customerName: "",
+    phone: "",
+    quantity: 1,
+  });
 
-  // 1) Load shows
+  // 1) Tải danh sách show
   useEffect(() => {
     dispatch(fetchShows());
   }, [dispatch]);
 
-  // 2) Khi có show -> load ticket types + polling + refresh on focus
+  // 2) Chọn show mặc định (từ Redux) -> nếu không có, lấy show đầu tiên khi shows có dữ liệu
   useEffect(() => {
     if (selectedShowId == null) return;
-
     dispatch(fetchByShowId(selectedShowId));
-    setSelectedTypeId(null);
-
-    const poll = window.setInterval(() => {
-      dispatch(fetchByShowId(selectedShowId));
-    }, POLL_MS);
-
-    const onFocus = () => dispatch(fetchByShowId(selectedShowId));
-    const onVisible = () => {
-      if (document.visibilityState === "visible") dispatch(fetchByShowId(selectedShowId));
-    };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      window.clearInterval(poll);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
+    setSelectedTypeId(null); // reset lựa chọn khi đổi show (giữ lại dòng này)
   }, [selectedShowId, dispatch]);
 
-  // 3) Lọc types theo show
-  const filteredTypes = useMemo(
-    () => (selectedShowId ? types.filter((t) => t.showId === selectedShowId) : []),
-    [types, selectedShowId]
-  );
-
-  // Nếu loại đang chọn biến mất -> reset
+  // 3) Mỗi khi selectedShowId đổi -> fetch ticket types theo show đó + reset loại vé đang chọn
   useEffect(() => {
-    if (selectedTypeId && !filteredTypes.some((t) => t.id === selectedTypeId)) {
-      setSelectedTypeId(null);
-    }
-  }, [filteredTypes, selectedTypeId]);
+    if (selectedShowId == null) return;
+    // thunk nên nhận showId, ví dụ: fetchTicketTypes(selectedShowId)
+    dispatch(fetchByShowId(selectedShowId));
+    setSelectedTypeId(null); // reset chọn loại vé khi đổi show
+  }, [selectedShowId, dispatch]);
+
+  // 4) Lọc types theo selectedShowId (nếu slice đã chỉ trả về types của show hiện tại, đoạn này vẫn ok)
+  const filteredTypes = useMemo(() => {
+    return selectedShowId ? types.filter(t => t.showId === selectedShowId) : [];
+  }, [types, selectedShowId]);
+
 
   const selectedType = useMemo(
     () => filteredTypes.find((t) => t.id === selectedTypeId) || null,
@@ -93,7 +81,7 @@ const Booking: React.FC = () => {
     if (!selectedType) return 0;
     return typeof selectedType.remainingQuantity === "number"
       ? selectedType.remainingQuantity
-      : selectedType.totalQuantity ?? 0;
+      : (selectedType.totalQuantity ?? 0);
   }, [selectedType]);
 
   const totalPrice = selectedType ? selectedType.price * formData.quantity : 0;
@@ -101,7 +89,7 @@ const Booking: React.FC = () => {
   const handleTypeSelect = (typeId: number) => {
     const t = filteredTypes.find((x) => x.id === typeId);
     if (!t) return;
-    const remain = t.remainingQuantity ?? t.totalQuantity ?? 0;
+    const remain = (t.remainingQuantity ?? t.totalQuantity ?? 0);
     if (remain <= 0) {
       toast.warn("Loại vé này đã hết.");
       return;
@@ -113,24 +101,29 @@ const Booking: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedShowId == null) return toast.error("Không xác định được show mặc định");
-    if (!selectedType) return toast.error("Vui lòng chọn loại vé");
-    if (!formData.customerName.trim()) return toast.error("Vui lòng nhập họ tên");
-    if (!/^0\d{9,10}$/.test(formData.phone.trim())) return toast.error("Số điện thoại không hợp lệ");
-    if (formData.quantity <= 0) return toast.error("Số lượng phải > 0");
-
-    // Re-validate tồn kho
-    try {
-      const latestList = await dispatch(fetchByShowId(selectedShowId)).unwrap();
-      const latestSelected = latestList.find((t: any) => t.id === selectedType.id);
-      const latestRemain =
-        (latestSelected?.remainingQuantity ?? latestSelected?.totalQuantity ?? 0) as number;
-      if (formData.quantity > latestRemain) {
-        toast.error(`Hiện chỉ còn ${latestRemain} vé cho loại này (vừa có thay đổi).`);
-        return;
-      }
-    } catch {
-      return toast.error("Không kiểm tra được tồn kho. Vui lòng thử lại.");
+    if (selectedShowId == null) {
+      toast.error("Không xác định được show mặc định");
+      return;
+    }
+    if (!selectedType) {
+      toast.error("Vui lòng chọn loại vé");
+      return;
+    }
+    if (!formData.customerName.trim()) {
+      toast.error("Vui lòng nhập họ tên");
+      return;
+    }
+    if (!/^0\d{9,10}$/.test(formData.phone.trim())) {
+      toast.error("Số điện thoại không hợp lệ");
+      return;
+    }
+    if (formData.quantity <= 0) {
+      toast.error("Số lượng phải > 0");
+      return;
+    }
+    if (formData.quantity > remaining) {
+      toast.error(`Chỉ còn ${remaining} vé cho loại này`);
+      return;
     }
 
     try {
@@ -141,10 +134,13 @@ const Booking: React.FC = () => {
         phone: formData.phone.trim(),
         quantity: formData.quantity,
       };
-      const res = await dispatch(createBooking(dto)).unwrap();
-      console.debug("createBooking OK:", res);
 
-      const payload = {
+      console.log("[BOOKING/SEND] DTO:", dto);
+      const res = await dispatch(createBooking(dto)).unwrap(); // BookingResponseDto
+      console.log("[BOOKING/RECV] Response:", res);
+
+      // Lưu vào context để Payment dùng
+      const payload: BookingDataForContext = {
         customerName: formData.customerName.trim(),
         phone: formData.phone.trim(),
         combo: selectedType.name,
@@ -152,69 +148,75 @@ const Booking: React.FC = () => {
         totalPrice: res.totalAmount,
         bookingId: res.bookingId,
         paymentQrUrl: res.paymentQrUrl,
-        paymentQrImage: res.paymentQrImage,
-        paymentQrString: res.paymentQrString,
+        paymentQrImage: res.paymentQrImage,   // nếu backend trả
+        paymentQrString: res.paymentQrString, // nếu backend trả
       };
+
+      // 1) Lưu vào Context
       setBookingData(payload);
+
+      // 2) Lưu vào sessionStorage (phòng trường hợp context chưa kịp hydrate)
+      console.debug("[BOOKING] createBooking OK:", res);
+      console.debug("[BOOKING] saving payload to session...", payload);
+
       sessionStorage.setItem("bookingData", JSON.stringify(payload));
-      navigate("/payment", { replace: true, state: { bookingData: payload } });
+      console.debug("[BOOKING] go /payment with state", payload);
+
+      navigate("/payment", { state: { bookingData: payload } });
+      // (Tuỳ chọn) Nếu bạn muốn quay lại trang này thì mới cần refresh tồn kho:
+      // dispatch(fetchTicketTypes(selectedShowId));
+
     } catch (err: any) {
+      console.log(" [BOOKING/ERR]:", err?.response?.data ?? err);
       const msg =
-        err?.response?.data?.message || err?.message || "Tạo đơn thất bại. Vui lòng thử lại.";
+        err?.response?.data?.message ||
+        err?.message ||
+        "Tạo đơn thất bại. Vui lòng thử lại.";
       toast.error(msg);
     }
   };
 
   return (
-    <div
-      className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8"
-      style={{ color: "rgb(var(--color-text))", backgroundColor: "rgb(var(--color-bg))" }}
-    >
+    <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">Chọn gói vé của bạn</h1>
-          <p style={{ color: "rgb(var(--color-muted))" }} className="text-base sm:text-lg">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
+            Chọn gói vé của bạn
+          </h1>
+          <p className="text-gray-400 text-base sm:text-lg">
             Lựa chọn trải nghiệm phù hợp nhất
           </p>
         </div>
+
+        {/* Ô chọn show đã ẨN – nhưng vẫn fill showId qua input hidden để tránh lỗi form/validator */}
+        <form style={{ display: "none" }}>
+          <input type="hidden" name="showId" value={selectedShowId ?? ""} readOnly />
+        </form>
 
         {/* Grid Ticket Types */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
           {filteredTypes.map((tt) => {
             const isPopular = false;
-            const remain = tt.remainingQuantity ?? tt.totalQuantity ?? 0;
+            const remain = (tt.remainingQuantity ?? tt.totalQuantity ?? 0);
             const outOfStock = remain <= 0;
             const active = selectedTypeId === tt.id;
 
             return (
               <div
                 key={tt.id}
-                className="relative backdrop-blur-lg p-6 sm:p-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-                style={{
-                  backgroundColor: "rgba(255,255,255,.05)",
-                  border: `1px solid ${
-                    isPopular
-                      ? "color-mix(in srgb, rgb(var(--color-primary)) 60%, transparent)"
-                      : "rgba(255,255,255,.15)"
-                  }`,
-                  boxShadow: isPopular ? "0 8px 30px rgba(0,0,0,.35)" : undefined,
-                  outline: active ? "2px solid rgb(var(--color-primary))" : "none",
-                  opacity: outOfStock ? 0.6 : 1,
-                  cursor: outOfStock ? "not-allowed" : "pointer",
-                }}
+                className={`relative bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border transition-all duration-300 transform hover:scale-105 ${isPopular
+
+                  ? "border-yellow-500 shadow-lg shadow-yellow-500/25"
+                  : "border-gray-600 hover:border-yellow-500/50"
+                  } ${active ? "ring-2 ring-yellow-500" : ""} ${outOfStock ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                  }`}
+
                 onClick={() => !outOfStock && handleTypeSelect(tt.id!)}
               >
                 {isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <div
-                      className="px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-bold flex items-center"
-                      style={{
-                        color: "#000",
-                        backgroundImage:
-                          "linear-gradient(90deg, var(--button-from, rgb(var(--color-primary))), var(--button-to, rgb(var(--color-primary))))",
-                      }}
-                    >
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-black px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-bold flex items-center">
                       <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       Phổ biến nhất
                     </div>
@@ -222,18 +224,17 @@ const Booking: React.FC = () => {
                 )}
 
                 <div className="text-center mb-6">
-                  <h3 className="text-xl sm:text-2xl font-bold mb-2">{tt.name}</h3>
-                  <div
-                    className="text-2xl sm:text-3xl font-bold"
-                    style={{ color: "rgb(var(--color-primary))" }}
-                  >
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                    {tt.name}
+                  </h3>
+                  <div className="text-2xl sm:text-3xl font-bold text-yellow-400">
                     {tt.price.toLocaleString("vi-VN")}đ
                   </div>
-                  <div className="mt-2 text-sm" style={{ color: "rgb(var(--color-text))" }}>
+                  <div className="mt-2 text-sm text-gray-300">
                     Còn lại:{" "}
                     <span
-                      className="font-semibold"
-                      style={{ color: remain === 0 ? "#ef4444" : "#22c55e" }}
+                      className={`font-semibold ${remain === 0 ? "text-red-400" : "text-green-400"
+                        }`}
                     >
                       {remain}
                     </span>
@@ -241,14 +242,8 @@ const Booking: React.FC = () => {
                 </div>
 
                 <ul className="space-y-3 mb-8">
-                  <li
-                    className="flex items-start text-sm sm:text-base"
-                    style={{ color: "rgb(var(--color-text))" }}
-                  >
-                    <Check
-                      className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 flex-shrink-0 mt-0.5"
-                      style={{ color: "rgb(var(--color-primary))" }}
-                    />
+                  <li className="flex items-start text-gray-300 text-sm sm:text-base">
+                    <Check className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 mr-2 sm:mr-3 flex-shrink-0 mt-0.5" />
                     Màu khu vực:{" "}
                     <span
                       className="inline-block ml-1 rounded px-2 py-0.5"
@@ -260,26 +255,14 @@ const Booking: React.FC = () => {
                 </ul>
 
                 <button
-                  className="w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base"
+                  className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${outOfStock
+
+                    ? "bg-gray-600 text-white cursor-not-allowed"
+                    : active
+                      ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
+                      : "bg-gray-700 hover:bg-gray-600 text-white"
+                    }`}
                   disabled={outOfStock}
-                  style={
-                    outOfStock
-                      ? {
-                          backgroundColor: "rgba(255,255,255,.15)",
-                          color: "rgb(var(--color-text))",
-                          cursor: "not-allowed",
-                        }
-                      : active
-                      ? {
-                          color: "#000",
-                          backgroundImage:
-                            "linear-gradient(90deg, var(--button-from, rgb(var(--color-primary))), var(--button-to, rgb(var(--color-primary))))",
-                        }
-                      : {
-                          backgroundColor: "rgba(255,255,255,.12)",
-                          color: "rgb(var(--color-text))",
-                        }
-                  }
                 >
                   {outOfStock ? "Hết vé" : active ? "Đang chọn" : "Chọn gói này"}
                 </button>
@@ -288,7 +271,7 @@ const Booking: React.FC = () => {
           })}
 
           {filteredTypes.length === 0 && (
-            <div className="col-span-full text-center" style={{ color: "rgb(var(--color-muted))" }}>
+            <div className="col-span-full text-center text-gray-400">
               {loadingTypes ? "Đang tải loại vé…" : "Chưa có loại vé cho show này"}
             </div>
           )}
@@ -296,20 +279,17 @@ const Booking: React.FC = () => {
 
         {/* Booking Form */}
         <div ref={formRef} className="max-w-2xl mx-auto">
-          <div
-            className="backdrop-blur-lg p-6 sm:p-8 rounded-xl"
-            style={{
-              backgroundColor: "rgba(255,255,255,.05)",
-              border: "1px solid color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent)",
-            }}
-          >
-            <h2 className="text-xl sm:text-2xl font-bold mb-6 text-center">Thông tin đặt vé</h2>
+          <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center">
+              Thông tin đặt vé
+            </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* hidden showId để fill dữ liệu */}
               <input type="hidden" name="showId" value={selectedShowId ?? ""} readOnly />
 
               <div>
-                <label className="block font-medium mb-2">Họ và tên</label>
+                <label className="block text-white font-medium mb-2">Họ và tên</label>
                 <input
                   type="text"
                   required
@@ -317,20 +297,13 @@ const Booking: React.FC = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, customerName: e.target.value }))
                   }
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg focus:outline-none focus:ring-1"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,.08)",
-                    border: "1px solid rgba(255,255,255,.15)",
-                    color: "rgb(var(--color-text))",
-                    outlineColor: "rgb(var(--color-primary))",
-                    boxShadow: "0 0 0 0 rgba(0,0,0,0)",
-                  }}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
                   placeholder="Nhập họ và tên của bạn"
                 />
               </div>
 
               <div>
-                <label className="block font-medium mb-2">Số điện thoại</label>
+                <label className="block text-white font-medium mb-2">Số điện thoại</label>
                 <input
                   type="tel"
                   required
@@ -338,19 +311,13 @@ const Booking: React.FC = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, phone: e.target.value }))
                   }
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg focus:outline-none focus:ring-1"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,.08)",
-                    border: "1px solid rgba(255,255,255,.15)",
-                    color: "rgb(var(--color-text))",
-                    outlineColor: "rgb(var(--color-primary))",
-                  }}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
                   placeholder="0xxx xxx xxx"
                 />
               </div>
 
               <div>
-                <label className="block font-medium mb-2">Số lượng vé</label>
+                <label className="block text-white font-medium mb-2">Số lượng vé</label>
                 <input
                   type="number"
                   min={1}
@@ -363,32 +330,18 @@ const Booking: React.FC = () => {
                       quantity: Math.max(1, Number(e.target.value) || 1),
                     }))
                   }
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg focus:outline-none focus:ring-1"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,.08)",
-                    border: "1px solid rgba(255,255,255,.15)",
-                    color: "rgb(var(--color-text))",
-                    outlineColor: "rgb(var(--color-primary))",
-                  }}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
                 />
                 {selectedType && (
-                  <p className="mt-2 text-xs" style={{ color: "rgb(var(--color-muted))" }}>
-                    Còn lại: {remaining} vé
-                  </p>
+                  <p className="mt-2 text-xs text-gray-400">Còn lại: {remaining} vé</p>
                 )}
               </div>
 
               {totalPrice > 0 && (
-                <div
-                  className="p-4 sm:p-6 rounded-lg"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,.06)",
-                    border: "1px solid color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent)",
-                  }}
-                >
-                  <div className="flex justify-between items-center text-lg sm:text-xl font-bold">
+                <div className="bg-gray-700/50 p-4 sm:p-6 rounded-lg border border-yellow-500/20">
+                  <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-white">
                     <span>Tổng tiền:</span>
-                    <span style={{ color: "rgb(var(--color-primary))" }}>
+                    <span className="text-yellow-400">
                       {totalPrice.toLocaleString("vi-VN")}đ
                     </span>
                   </div>
@@ -398,20 +351,11 @@ const Booking: React.FC = () => {
               <button
                 type="submit"
                 disabled={!selectedType}
-                className="w-full font-bold py-3 sm:py-4 rounded-lg transition-transform hover:scale-[1.02] shadow-lg"
-                style={
-                  selectedType
-                    ? {
-                        color: "#000",
-                        backgroundImage:
-                          "linear-gradient(90deg, var(--button-from, rgb(var(--color-primary))), var(--button-to, rgb(var(--color-primary))))",
-                      }
-                    : {
-                        backgroundColor: "rgba(255,255,255,.2)",
-                        color: "rgb(var(--color-text))",
-                        cursor: "not-allowed",
-                      }
-                }
+                className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${selectedType
+
+                  ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
+                  : "bg-gray-600 text-white cursor-not-allowed"
+                  }`}
               >
                 Đặt vé ngay
               </button>
