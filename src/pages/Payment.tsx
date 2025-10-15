@@ -19,6 +19,7 @@ type BookingData = {
   paymentQrImage?: string;
   paymentQrString?: string;
   paymentQrUrl?: string;
+  bookingCode?: string;
 };
 
 type Ticket = {
@@ -219,7 +220,7 @@ const Payment: React.FC = () => {
               </div>
 
               <p className="text-gray-400 mb-6 text-sm sm:text-base">
-                Quét mã QR để thanh toán qua Tingee
+                Quét mã QR để thanh toán, vui lòng nhập chính xác nội dung {mergedData.bookingCode}
               </p>
 
               <button
