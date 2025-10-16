@@ -64,7 +64,7 @@ const Payment: React.FC = () => {
   })();
 
   const mergedData: BookingData | null = bookingData ?? stateData ?? sessionParsed;
-
+  console.log("mergeData: ", mergedData);
   // nếu context rỗng mà merged có -> set lại context & session
   useEffect(() => {
     if (!bookingData && mergedData) {
@@ -220,7 +220,7 @@ const Payment: React.FC = () => {
               </div>
 
               <p className="text-gray-400 mb-6 text-sm sm:text-base">
-                Quét mã QR để thanh toán, vui lòng nhập chính xác nội dung {mergedData.bookingCode}
+                Quét mã QR để thanh toán, vui lòng nhập chính xác nội dung: BOOKING{mergedData.bookingId}
               </p>
 
               <button

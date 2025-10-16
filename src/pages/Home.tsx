@@ -68,8 +68,8 @@ const Home: React.FC = () => {
           style={{ backgroundImage: `url(${backgroundUrl})` }}
         />
         {/* overlay dùng surface/bg để trộn */}
-        <div className="absolute inset-0"
-             style={{ backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 70%, #000 30%)" }} />
+        {/* <div className="absolute inset-0"
+             style={{ backgroundColor: "color-mix(in srgb, rgb(var(--color-bg)) 70%, #000 30%)" }} /> */}
 
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           {/* Title dùng gradient theo primary */}

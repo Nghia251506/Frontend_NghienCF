@@ -1,22 +1,18 @@
-// src/components/Layout.tsx
 import React from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Music, Home, CreditCard } from "lucide-react";
-import { IoMdLogIn } from "react-icons/io";
+import { FaFacebookMessenger, FaFacebookF } from "react-icons/fa";
+import { SiZalo } from "react-icons/si";
 
 const Layout: React.FC = () => {
   const { pathname, search } = useLocation();
   const isActive = (path: string) => pathname === path;
-
-  // Ẩn navbar khi preview trong iframe: /?embed=1
   const hideNav = new URLSearchParams(search).get("embed") === "1";
 
   return (
     <div
-      className="min-h-screen"
-      // nền theo theme (gradient nhẹ)
+      className="min-h-screen relative"
       style={{
-        // các biến này do applyTheme() set: --color-bg / --color-surface / --color-primary / ...
         background:
           "linear-gradient(135deg, rgb(var(--color-bg)) 0%, rgb(var(--color-surface)) 100%)",
       }}
@@ -32,7 +28,6 @@ const Layout: React.FC = () => {
         >
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-16 items-center justify-between">
-              {/* Brand */}
               <Link to="/" className="flex items-center gap-2">
                 <Music
                   className="h-6 w-6 sm:h-8 sm:w-8"
@@ -46,31 +41,18 @@ const Layout: React.FC = () => {
                 </span>
               </Link>
 
-              {/* Right links */}
               <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
                 <Link
                   to="/"
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm sm:text-base transition"
                   style={{
                     color: isActive("/")
-                      ? "rgb(var(--color-primary))"
+                      ? "rgba(var(--color-primary))"
                       : "rgba(var(--color-text), 0.8)",
                     backgroundColor: isActive("/")
                       ? "rgba(var(--color-primary), 0.2)"
                       : "transparent",
                   }}
-                  onMouseEnter={(e) =>
-                    !isActive("/") &&
-                    ((e.currentTarget.style.color = "rgb(var(--color-primary))"),
-                    (e.currentTarget.style.backgroundColor =
-                      "rgba(var(--color-text), 0.1)"))
-                  }
-                  onMouseLeave={(e) =>
-                    !isActive("/") &&
-                    ((e.currentTarget.style.color =
-                      "rgba(var(--color-text), 0.8)"),
-                    (e.currentTarget.style.backgroundColor = "transparent"))
-                  }
                 >
                   <Home className="h-4 w-4" />
                   <span>Trang chủ</span>
@@ -87,18 +69,6 @@ const Layout: React.FC = () => {
                       ? "rgba(var(--color-primary), 0.2)"
                       : "transparent",
                   }}
-                  onMouseEnter={(e) =>
-                    !isActive("/booking") &&
-                    ((e.currentTarget.style.color = "rgb(var(--color-primary))"),
-                    (e.currentTarget.style.backgroundColor =
-                      "rgb(var(--color-text), 0.1)"))
-                  }
-                  onMouseLeave={(e) =>
-                    !isActive("/booking") &&
-                    ((e.currentTarget.style.color =
-                      "rgb(var(--color-text), 0.8)"),
-                    (e.currentTarget.style.backgroundColor = "transparent"))
-                  }
                 >
                   <CreditCard className="h-4 w-4" />
                   <span>Đặt vé</span>
@@ -113,6 +83,42 @@ const Layout: React.FC = () => {
       <main>
         <Outlet />
       </main>
+
+      {/* Floating Contact Buttons */}
+      <div className="fixed bottom-5 right-5 flex flex-col items-center gap-3 z-[60] contact-float">
+        {/* Zalo */}
+        <a
+          href="https://zalo.me/yourZaloNumber"
+          target="_blank"
+          rel="noreferrer"
+          title="Liên hệ Zalo"
+          className="contact-btn bg-blue-500"
+        >
+          <SiZalo className="text-white text-2xl sm:text-3xl" />
+        </a>
+
+        {/* Messenger */}
+        <a
+          href="https://m.me/yourMessengerId"
+          target="_blank"
+          rel="noreferrer"
+          title="Chat Messenger"
+          className="contact-btn bg-[#0084FF]"
+        >
+          <FaFacebookMessenger className="text-white text-2xl sm:text-3xl" />
+        </a>
+
+        {/* Facebook */}
+        <a
+          href="https://facebook.com/yourPage"
+          target="_blank"
+          rel="noreferrer"
+          title="Trang Facebook"
+          className="contact-btn bg-[#1877F2]"
+        >
+          <FaFacebookF className="text-white text-xl sm:text-2xl" />
+        </a>
+      </div>
     </div>
   );
 };

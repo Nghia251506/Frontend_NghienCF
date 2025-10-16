@@ -45,6 +45,7 @@ export type BookingResponseDto = {
   paymentQrUrl: string;    // có thể null
   paymentQrImage?: string;   // data:image/png;base64,...
   paymentQrString?: string;  // “000201...”
+  bookingCode?: string;
 };
 
 export interface BookingData {
@@ -54,6 +55,7 @@ export interface BookingData {
   quantity: number;
   totalPrice: number;
   seatNumbers?: string[];
+  bookingCode?: string; 
 
   // thêm để dùng cho trang /payment
   bookingId?: number;
