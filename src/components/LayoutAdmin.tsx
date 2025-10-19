@@ -5,6 +5,7 @@ import { RootState , AppDispatch } from "../redux/store";
 import { logout } from "../redux/UserSlice";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Footer from "./Footer";
 
 // Icons
 import {
@@ -374,16 +375,15 @@ const LayoutAdmin: React.FC = () => {
                 <Outlet />
               </div>
             </div>
-            <footer className="mt-6 text-center text-xs text-gray-400">
-              Admin Dashboard ©{new Date().getFullYear()}
-            </footer>
+            <Footer/>
           </main>
         </div>
       </div>
 
       {/* Toast */}
       <ToastContainer position="top-right" autoClose={2500} />
-    </div>
+      
+       </div>
   );
 };
 

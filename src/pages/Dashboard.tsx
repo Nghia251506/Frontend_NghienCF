@@ -150,7 +150,7 @@ const Dashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Thống kê & Báo cáo</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-200">Thống kê & Báo cáo</h1>
           <p className="text-gray-400 mt-2">Doanh thu và số vé theo show, theo tuần, theo tháng.</p>
         </div>
 

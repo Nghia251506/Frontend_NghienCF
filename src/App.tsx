@@ -19,7 +19,7 @@ import type { RootState, AppDispatch } from "./redux/store";
 import { fetchTheme } from "./redux/ThemeSlice";
 import { applyTheme } from "./applyTheme";
 import PrivateRoute from "./Auth/PrivateRoute";
-import RouteChangeLogger from "./utils/RouteChangeLogger";
+// import RouteChangeLogger from "./utils/RouteChangeLogger";
 
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -41,7 +41,6 @@ export default function App() {
 
   return (
     <Router>
-      <RouteChangeLogger />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />

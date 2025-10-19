@@ -64,7 +64,6 @@ const Payment: React.FC = () => {
   })();
 
   const mergedData: BookingData | null = bookingData ?? stateData ?? sessionParsed;
-  console.log("mergeData: ", mergedData);
   // nếu context rỗng mà merged có -> set lại context & session
   useEffect(() => {
     if (!bookingData && mergedData) {

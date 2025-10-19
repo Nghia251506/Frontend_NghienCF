@@ -268,7 +268,7 @@ const TicketAdmin: React.FC = () => {
       <Card
         className="w-full rounded-2xl border border-white/10 bg-white/5 text-white shadow-lg"
         bodyStyle={{ padding: 16 }}
-        title={<Title level={3} className="!mb-0 text-white">🎟️ Quản lý vé đã phát hành</Title>}
+        title={<Title level={3} className="!mb-0 !text-white">🎟️ Quản lý vé đã phát hành</Title>}
       >
         {/* Toolbar filters */}
         <div className="mb-4">

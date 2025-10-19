@@ -248,7 +248,7 @@ const ListShow: React.FC = () => {
         bodyStyle={{ padding: 16 }}
         title={
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <Title level={4} className="!mb-0 text-white">Danh sách Show</Title>
+            <Title level={4} className="!mb-0 !text-white">Danh sách Show</Title>
             <Input
               allowClear
               size="large"

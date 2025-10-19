@@ -419,7 +419,7 @@ const ListType: React.FC = () => {
         bodyStyle={{ padding: 16 }}
         title={
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <Title level={3} className="!mb-0 text-white">🎫 Ticket Types</Title>
+            <Title level={3} className="!mb-0 !text-gray-200">🎫 Ticket Types</Title>
             <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
               <Select
                 allowClear

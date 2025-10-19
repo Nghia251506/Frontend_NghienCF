@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import { Music, Home, CreditCard } from "lucide-react";
 import { FaFacebookMessenger, FaFacebookF } from "react-icons/fa";
 import { SiZalo } from "react-icons/si";
+import Footer from "./Footer";
 
 const Layout: React.FC = () => {
   const { pathname, search } = useLocation();
@@ -82,6 +83,7 @@ const Layout: React.FC = () => {
       {/* Main */}
       <main>
         <Outlet />
+        <Footer/>
       </main>
 
       {/* Floating Contact Buttons */}

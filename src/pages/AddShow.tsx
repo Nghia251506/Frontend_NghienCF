@@ -61,8 +61,7 @@ const AddShow: React.FC = () => {
         err?.message ||
         "Thêm show thất bại!";
       toast.error(detail);
-      // eslint-disable-next-line no-console
-      console.error("[AddShow] error:", resp || err);
+      
     }
   };
 
@@ -70,7 +69,7 @@ const AddShow: React.FC = () => {
     <div className="w-full px-3 sm:px-4 lg:px-6">
       {/* Card full-width desktop, gọn ở mobile */}
       <Card
-        title={<div className="text-base sm:text-lg font-semibold">Thêm Show Diễn</div>}
+        title={<div className="text-base sm:text-lg font-semibold !text-gray-200">Thêm Show Diễn</div>}
         className="w-full shadow-lg rounded-2xl border border-white/10 bg-white/5 text-white"
         styles={{ body: { padding: 16 } }}
       >

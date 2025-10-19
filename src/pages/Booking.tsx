@@ -135,9 +135,9 @@ const Booking: React.FC = () => {
         quantity: formData.quantity,
       };
 
-      console.log("[BOOKING/SEND] DTO:", dto);
+      
       const res = await dispatch(createBooking(dto)).unwrap(); // BookingResponseDto
-      console.log("[BOOKING/RECV] Response:", res);
+      
 
       // Lưu vào context để Payment dùng
       const payload: BookingDataForContext = {
@@ -156,18 +156,17 @@ const Booking: React.FC = () => {
       setBookingData(payload);
 
       // 2) Lưu vào sessionStorage (phòng trường hợp context chưa kịp hydrate)
-      console.debug("[BOOKING] createBooking OK:", res);
-      console.debug("[BOOKING] saving payload to session...", payload);
+      
 
       sessionStorage.setItem("bookingData", JSON.stringify(payload));
-      console.debug("[BOOKING] go /payment with state", payload);
+      
 
       navigate("/payment", { state: { bookingData: payload } });
       // (Tuỳ chọn) Nếu bạn muốn quay lại trang này thì mới cần refresh tồn kho:
       // dispatch(fetchTicketTypes(selectedShowId));
 
     } catch (err: any) {
-      console.log(" [BOOKING/ERR]:", err?.response?.data ?? err);
+      
       const msg =
         err?.response?.data?.message ||
         err?.message ||

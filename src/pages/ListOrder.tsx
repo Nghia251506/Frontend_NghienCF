@@ -329,7 +329,7 @@ const ListOrder: React.FC = () => {
       <Card
         className="w-full rounded-2xl border border-white/10 bg-white/5 text-white shadow-lg"
         bodyStyle={{ padding: 16 }}
-        title={<Title level={3} className="!mb-0 text-white">📦 Danh sách Order</Title>}
+        title={<Title level={3} className="!mb-0 !text-white">📦 Danh sách Order</Title>}
       >
         {/* Search */}
         <Form
