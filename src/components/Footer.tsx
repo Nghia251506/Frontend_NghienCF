@@ -6,11 +6,10 @@ export default function Footer() {
     return (
         <footer className="text-center text-sm text-gray-400 mt-10 border-t pt-4">
             <p>
-                © 2025 <strong>Freelancer Nguyễn Trọng Nghĩa</strong>. All rights reserved.
+                © 2025 <strong>Chạm Khoảnh Khắc</strong>. All rights reserved.
             </p>
             <p>
-                Website được phát triển bởi <strong>Nguyễn Trọng Nghĩa</strong> — Liên hệ:
-                <a href="mailto:yourname@gmail.com" className="text-blue-600 hover:underline"> ntn8530@gmail.com</a> - 0862273012
+                Website được phát triển bởi <strong>Chạm Khoảnh Khắc</strong>
             </p>
         </footer>
     );

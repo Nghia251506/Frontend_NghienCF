@@ -4,12 +4,13 @@ import { Music, Home, CreditCard } from "lucide-react";
 import { FaFacebookMessenger, FaFacebookF } from "react-icons/fa";
 import { SiZalo } from "react-icons/si";
 import Footer from "./Footer";
+import Logo from "../data/logo_chamkhoanhkhac.jpg"
 
 const Layout: React.FC = () => {
   const { pathname, search } = useLocation();
   const isActive = (path: string) => pathname === path;
   const hideNav = new URLSearchParams(search).get("embed") === "1";
-
+  const logoUrl = new URL("../data/logo_chamkhoanhkhac.jpg", import.meta.url).href;
   return (
     <div
       className="min-h-screen relative"
@@ -30,8 +31,9 @@ const Layout: React.FC = () => {
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-16 items-center justify-between">
               <Link to="/" className="flex items-center gap-2">
-                <Music
-                  className="h-6 w-6 sm:h-8 sm:w-8"
+                <img
+                  src={logoUrl}
+                  className="h-6 w-6 sm:h-8 sm:w-8 "
                   style={{ color: "rgb(var(--color-primary))" }}
                 />
                 <span

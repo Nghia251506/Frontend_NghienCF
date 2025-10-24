@@ -6,6 +6,7 @@ export interface TicketType{
     price: number;
     totalQuantity: number;
     remainingQuantity?: number;
+    description: string;
 }
 
 export interface TicketTypeCreateDto{
@@ -14,4 +15,5 @@ export interface TicketTypeCreateDto{
     color: string;
     price: number;
     totalQuantity: number;
+    description: string;
 }

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { ColumnsType } from "antd/es/table";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import {
   Card,
   Table,
@@ -18,6 +20,7 @@ import {
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
+import DOMPurify from "dompurify";
 
 import { RootState, AppDispatch } from "../redux/store";
 import {
@@ -38,6 +41,29 @@ const { useBreakpoint } = Grid;
 const PAGE_SIZE = 10;
 
 type TypeRow = TicketType & { remainingQuantity?: number };
+
+// === Helpers cho Quill & preview ===
+const stripHtml = (html = "") => html.replace(/<[^>]+>/g, "").trim();
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["link"],
+    ["clean"],
+  ],
+};
+const quillFormats = [
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "bullet",
+  "link",
+];
 
 const ListType: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -141,8 +167,8 @@ const ListType: React.FC = () => {
       {
         title: "Thông tin",
         dataIndex: "info",
-        responsive: ["xs"], // xuất hiện từ xs trở lên; các cột còn lại set ["md"] để chỉ hiện từ md
-        render: (_: any, r: TypeRow, index) => (
+        responsive: ["xs"],
+        render: (_: any, r: TypeRow) => (
           <div className="min-w-[260px]">
             <div className="flex items-center justify-between gap-3">
               <Text strong>{r.name}</Text>
@@ -180,6 +206,11 @@ const ListType: React.FC = () => {
               )}
             </div>
 
+            {/* preview mô tả (plain text) */}
+            <div className="mt-2 text-[12px] text-gray-400 line-clamp-2">
+              {stripHtml(r.description || "").slice(0, 160) || "—"}
+            </div>
+
             {/* actions trên mobile */}
             <div className="mt-2 flex items-center gap-8">
               <Button
@@ -194,6 +225,7 @@ const ListType: React.FC = () => {
                     color: r.color,
                     price: r.price,
                     totalQuantity: r.totalQuantity,
+                    description: r.description ?? "", // ✅ set sẵn mô tả
                   });
                 }}
               >
@@ -296,9 +328,25 @@ const ListType: React.FC = () => {
         align: "center",
         responsive: ["md"],
         render: (_: any, r: TypeRow) => (
-          <span style={{ color: r.remainingQuantity === 0 ? "#f5222d" : undefined, fontWeight: 600 }}>
+          <span
+            style={{
+              color: r.remainingQuantity === 0 ? "#f5222d" : undefined,
+              fontWeight: 600,
+            }}
+          >
             {r.remainingQuantity}
           </span>
+        ),
+      },
+      {
+        title: "Mô tả",
+        dataIndex: "description",
+        responsive: ["lg"],
+        render: (html?: string) => (
+          <div
+            className="max-w-[420px] text-[12px] text-gray-500 line-clamp-2"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html || "") }}
+          />
         ),
       },
       {
@@ -321,6 +369,7 @@ const ListType: React.FC = () => {
                   color: record.color,
                   price: record.price,
                   totalQuantity: record.totalQuantity,
+                  description: record.description ?? "", // ✅ set sẵn mô tả
                 });
               }}
             >
@@ -352,7 +401,15 @@ const ListType: React.FC = () => {
         ),
       },
     ],
-    [currentPage, showTitleMap, selectedShowId, editForm, dispatch, removingId, screens.lg]
+    [
+      currentPage,
+      showTitleMap,
+      selectedShowId,
+      editForm,
+      dispatch,
+      removingId,
+      screens.lg,
+    ]
   );
 
   const handleTableChange = (p: any) => {
@@ -367,7 +424,7 @@ const ListType: React.FC = () => {
     }
     setOpenAdd(true);
     addForm.resetFields();
-    addForm.setFieldsValue({ showId: selectedShowId });
+    addForm.setFieldsValue({ showId: selectedShowId, description: "" });
   };
 
   const handleAdd = async () => {
@@ -393,7 +450,9 @@ const ListType: React.FC = () => {
         ...values,
         showId: selectedShowId ?? editing.showId, // giữ theo show đang lọc
       };
-      await dispatch(editTicketType({ id: editing.id, type: normalized })).unwrap();
+      await dispatch(
+        editTicketType({ id: editing.id, type: normalized })
+      ).unwrap();
       toast.success("Đã cập nhật loại vé");
       setOpenEdit(false);
       setEditing(null);
@@ -407,7 +466,8 @@ const ListType: React.FC = () => {
   const minByBookedValidator = (_: any, v: any) => {
     if (!editing) return Promise.resolve();
     const booked = getBookedFor(selectedShowId ?? editing.showId, editing.id);
-    if (v == null || isNaN(v) || v < 0) return Promise.reject("Số lượng phải là số không âm");
+    if (v == null || isNaN(v) || v < 0)
+      return Promise.reject("Số lượng phải là số không âm");
     if (v < booked) return Promise.reject(`Tối thiểu ${booked} (đã đặt)`);
     return Promise.resolve();
   };
@@ -419,7 +479,9 @@ const ListType: React.FC = () => {
         bodyStyle={{ padding: 16 }}
         title={
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <Title level={3} className="!mb-0 !text-gray-200">🎫 Ticket Types</Title>
+            <Title level={3} className="!mb-0 !text-gray-200">
+              🎫 Ticket Types
+            </Title>
             <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
               <Select
                 allowClear
@@ -464,7 +526,9 @@ const ListType: React.FC = () => {
 
       {/* Modal Add */}
       <Modal
-        title={`Thêm loại vé ${selectedShowId ? `cho show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""}`}
+        title={`Thêm loại vé ${
+          selectedShowId ? `cho show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""
+        }`}
         open={openAdd}
         onCancel={() => setOpenAdd(false)}
         onOk={handleAdd}
@@ -474,7 +538,11 @@ const ListType: React.FC = () => {
       >
         <Form form={addForm} layout="vertical">
           {/* Ẩn nhưng giữ giá trị showId = show đang chọn */}
-          <Form.Item name="showId" hidden rules={[{ required: true, message: "Thiếu showId" }]} >
+          <Form.Item
+            name="showId"
+            hidden
+            rules={[{ required: true, message: "Thiếu showId" }]}
+          >
             <Input />
           </Form.Item>
 
@@ -489,7 +557,9 @@ const ListType: React.FC = () => {
           <Form.Item
             label="Màu"
             name="color"
-            rules={[{ required: true, message: "Vui lòng nhập màu (vd: #FF9900 hoặc 'gold')" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập màu (vd: #FF9900 hoặc 'gold')" },
+            ]}
           >
             <Input placeholder="#FF9900 hoặc 'gold'" />
           </Form.Item>
@@ -508,6 +578,16 @@ const ListType: React.FC = () => {
             ]}
           >
             <InputNumber min={0} className="w-full" placeholder="VD: 150000" />
+          </Form.Item>
+
+          <Form.Item
+            label="Mô tả / Description"
+            name="description"
+            rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+            valuePropName="value"
+            getValueFromEvent={(content: string) => content}
+          >
+            <ReactQuill theme="snow" modules={quillModules} formats={quillFormats} />
           </Form.Item>
 
           <Form.Item
@@ -530,7 +610,9 @@ const ListType: React.FC = () => {
 
       {/* Modal Edit */}
       <Modal
-        title={`Sửa loại vé ${selectedShowId ? `của show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""}`}
+        title={`Sửa loại vé ${
+          selectedShowId ? `của show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""
+        }`}
         open={openEdit}
         onCancel={() => {
           setOpenEdit(false);
@@ -543,7 +625,11 @@ const ListType: React.FC = () => {
       >
         <Form form={editForm} layout="vertical">
           {/* Ẩn nhưng giữ giá trị showId = show đang chọn */}
-          <Form.Item name="showId" hidden rules={[{ required: true, message: "Thiếu showId" }]} >
+          <Form.Item
+            name="showId"
+            hidden
+            rules={[{ required: true, message: "Thiếu showId" }]}
+          >
             <Input />
           </Form.Item>
 
@@ -558,7 +644,9 @@ const ListType: React.FC = () => {
           <Form.Item
             label="Màu"
             name="color"
-            rules={[{ required: true, message: "Vui lòng nhập màu (vd: #FF9900 hoặc 'gold')" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập màu (vd: #FF9900 hoặc 'gold')" },
+            ]}
           >
             <Input placeholder="#FF9900 hoặc 'gold'" />
           </Form.Item>
@@ -580,12 +668,19 @@ const ListType: React.FC = () => {
           </Form.Item>
 
           <Form.Item
+            label="Mô tả / Description"
+            name="description"
+            rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+            valuePropName="value"
+            getValueFromEvent={(content: string) => content}
+          >
+            <ReactQuill theme="snow" modules={quillModules} formats={quillFormats} />
+          </Form.Item>
+
+          <Form.Item
             label="Tổng số lượng"
             name="totalQuantity"
-            rules={[
-              { required: true, message: "Vui lòng nhập tổng số lượng" },
-              { validator: minByBookedValidator }, // ✅ không cho < đã đặt
-            ]}
+            rules={[{ required: true, message: "Vui lòng nhập tổng số lượng" }, { validator: minByBookedValidator }]}
           >
             <InputNumber min={0} className="w-full" placeholder="VD: 500" />
           </Form.Item>
