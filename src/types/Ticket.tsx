@@ -4,6 +4,9 @@ export interface Ticket {
   ticketCode: string;
   status: "valid" | "used" | "canceled" | string;       // "valid" | "used" | ...
   issuedAt: string;      // ISO string từ backend
+  // thêm 2 field tùy API của bạn
+  holderName?: string;      // tên người cầm vé (nếu có)
+  customerName?: string;    // tên người đặt từ backend (nếu trả)
 }
 
 export interface TicketCreateDto {
