@@ -5,7 +5,6 @@ const TICKETTYPE_URL = "/tickettype";
 
 export const getByShowId = async (showId: number): Promise<TicketType[]> => {
   const data = await axiosClient.get(`${TICKETTYPE_URL}/by-show/${showId}`);
-  console.log(data);
   return data;
   // return await axiosClient.get(`${TICKETTYPE_URL}/by-show/${showId}`);
 };

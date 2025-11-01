@@ -4,7 +4,9 @@ import { Show , ShowCreateDto} from "../types/Show";
 const SHOW_URL = "/show";
 
 export const getAllShows = async (): Promise<Show[]> => {
-  return await axiosClient.get(`${SHOW_URL}/getall`);
+  const data = await axiosClient.get(`${SHOW_URL}/getall`);
+  console.log(data);
+  return data;
 };
 
 export const getShowByType = async (title: string): Promise<Show> => {

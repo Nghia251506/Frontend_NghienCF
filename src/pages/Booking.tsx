@@ -43,10 +43,10 @@ const Booking: React.FC = () => {
     );
     if (beDefault) return beDefault.id!;
 
-    if (defaultId != null) {
-      const fromLocal = shows.find((s) => s.id === defaultId);
-      if (fromLocal) return fromLocal.id!;
-    }
+    // if (defaultId != null) {
+    //   const fromLocal = shows.find((s) => s.id === defaultId);
+    //   if (fromLocal) return fromLocal.id!;
+    // }
 
     return shows[0].id!;
   }, [shows, defaultId]);
@@ -281,7 +281,7 @@ const Booking: React.FC = () => {
         <div ref={formRef} className="max-w-2xl mx-auto">
           <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20">
             <h2 className="text-xl sm:text-2xl font-bold !text-white mb-6 text-center">
-              Thông tin đặt vé
+              Thông tin đặt chỗ
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">

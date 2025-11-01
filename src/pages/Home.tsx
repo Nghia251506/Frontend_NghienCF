@@ -19,6 +19,7 @@ type ShowLike = {
   locationLat?: number;
   locationLng?: number;
   locationPlaceId?: string;
+  isDefault:string;
 };
 
 const Home: React.FC = () => {
@@ -42,11 +43,11 @@ const Home: React.FC = () => {
       const fromLocal = shows.find((s: any) => s.id === defaultId);
       if (fromLocal) return fromLocal as ShowLike;
     }
-
+    
     // 3. Fallback
     return shows[0] as ShowLike;
   }, [shows, defaultId]);
-
+console.log("Đây là ở Local", currentShow)
   // Ảnh nền với fallback public/default.jpg
   const backgroundUrl = currentShow?.bannerUrl?.trim()
     ? currentShow.bannerUrl!
