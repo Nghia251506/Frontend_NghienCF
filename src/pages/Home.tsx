@@ -21,7 +21,7 @@ type ShowLike = {
   locationPlaceId?: string;
   isDefault:string;
 };
-
+// console.log("ShowDefault: ")
 const Home: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { items: shows, defaultId, loading } = useSelector((s: RootState) => s.shows);
@@ -35,7 +35,7 @@ const Home: React.FC = () => {
     if (!shows || shows.length === 0) return null;
 
     // 1. Ưu tiên show mà BE đánh dấu default
-    const fromBackend = shows.find((s: any) => s.defaultShow === "Active" || s.isDefault === true);
+    const fromBackend = shows.find((s: any) => s.isDefault === "Active" || s.isDefault === true);
     if (fromBackend) return fromBackend as ShowLike;
 
     // 2. Nếu BE không có default thì mới dùng cái đã lưu trong localStorage
