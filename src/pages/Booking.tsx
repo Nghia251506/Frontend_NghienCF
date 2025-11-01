@@ -316,7 +316,7 @@ const Booking: React.FC = () => {
               </div>
 
               <div>
-                <label className="block !text-white font-medium mb-2">Số lượng vé</label>
+                <label className="block !text-white font-medium mb-2">Số lượng ghế</label>
                 <input
                   type="number"
                   min={1}
@@ -332,7 +332,7 @@ const Booking: React.FC = () => {
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg !text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm sm:text-base"
                 />
                 {selectedType && (
-                  <p className="mt-2 text-xs text-gray-400">Còn lại: {remaining} vé</p>
+                  <p className="mt-2 text-xs text-gray-400">Còn lại: {remaining} ghế</p>
                 )}
               </div>
 
@@ -355,7 +355,7 @@ const Booking: React.FC = () => {
                     : "bg-gray-600 text-white cursor-not-allowed"
                   }`}
               >
-                Đặt vé ngay
+                Đặt ngay
               </button>
             </form>
           </div>

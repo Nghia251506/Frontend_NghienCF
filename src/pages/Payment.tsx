@@ -277,8 +277,8 @@ const Payment: React.FC = () => {
                 </h3>
                 <div className="text-gray-300 space-y-1 text-sm sm:text-base">
                   <p>Khách hàng: {mergedData.customerName}</p>
-                  <p>Loại vé: {mergedData.combo}</p>
-                  <p>Số lượng: {mergedData.quantity} vé</p>
+                  <p>Loại combo: {mergedData.combo}</p>
+                  <p>Số lượng: {mergedData.quantity} ghế</p>
                   <p className="text-lg sm:text-xl font-bold !text-yellow-400">
                     Tổng tiền: {mergedData.totalPrice.toLocaleString("vi-VN")}đ
                   </p>
@@ -499,7 +499,7 @@ const TicketDisplay: React.FC<{
                   className="p-3 sm:p-4 rounded-lg"
                   style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
                 >
-                  <p className="text-gray-200 text-sm">Loại vé</p>
+                  <p className="text-gray-200 text-sm">Loại combo</p>
                   <p className="font-semibold text-sm sm:text-base" style={{ color: borderColor }}>
                     {bookingData.combo}
                   </p>
@@ -510,7 +510,7 @@ const TicketDisplay: React.FC<{
                 >
                   <p className="text-gray-200 text-sm">Số lượng</p>
                   <p className="!text-white font-semibold text-sm sm:text-base">
-                    {bookingData.quantity} vé
+                    {bookingData.quantity} ghế
                   </p>
                 </div>
               </div>
@@ -519,7 +519,7 @@ const TicketDisplay: React.FC<{
                 className="p-3 sm:p-4 rounded-lg"
                 style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
               >
-                <p className="text-gray-200 text-sm">Mã vé</p>
+                <p className="text-gray-200 text-sm">Mã ghế</p>
                 <p className="text-white font-semibold text-sm sm:text-base">
                   {firstTicket?.ticketCode}
                 </p>
@@ -540,7 +540,7 @@ const TicketDisplay: React.FC<{
                   {groupedByName.map(([name, list]) => (
                     <div key={name}>
                       <div className="font-semibold mb-2">
-                        Vé của <span className="!text-white">{name}</span>
+                        Ghế của <span className="!text-white">{name}</span>
                       </div>
                       <div className="bg-gray-800/50 border border-yellow-500/20 rounded-lg p-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -590,9 +590,9 @@ const TicketDisplay: React.FC<{
           <button
             onClick={handleSaveImage}
             className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 sm:py-3 px-4 sm:px-5 rounded-lg transition-colors text-sm sm:text-base"
-            title="Lưu vé thành ảnh"
+            title="Lưu thành ảnh"
           >
-            <Download className="w-4 h-4" /> Lưu vé
+            <Download className="w-4 h-4" /> Tải về
           </button>
         </div>
       </div>

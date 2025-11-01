@@ -130,7 +130,7 @@ const Home: React.FC = () => {
               boxShadow: "0 10px 25px rgba(0,0,0,.25)",
             }}
           >
-            Đặt vé ngay
+            Đặt ngay
             <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
           </Link>
         </div>

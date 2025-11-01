@@ -47,7 +47,7 @@ const Layout: React.FC = () => {
               <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
                 <Link
                   to="/"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm sm:text-base transition"
+                  className="flex items-center text-gray-400 gap-2 px-3 py-2 rounded-lg text-sm sm:text-base transition"
                   style={{
                     color: isActive("/")
                       ? "rgba(var(--color-primary))"
@@ -74,7 +74,7 @@ const Layout: React.FC = () => {
                   }}
                 >
                   <CreditCard className="h-4 w-4" />
-                  <span>Đặt vé</span>
+                  <span>Đặt chỗ</span>
                 </Link>
               </div>
             </div>

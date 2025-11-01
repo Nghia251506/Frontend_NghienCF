@@ -1,6 +1,16 @@
 // components/ShowForm.tsx
 import React, { useState } from "react";
-import { Form, Input, DatePicker, InputNumber, Button, Upload, Space, Image } from "antd";
+import {
+  Form,
+  Input,
+  DatePicker,
+  InputNumber,
+  Button,
+  Upload,
+  Space,
+  Image,
+  message,
+} from "antd";
 import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import axiosClient from "../axios/axiosClient";
@@ -8,10 +18,10 @@ import axiosClient from "../axios/axiosClient";
 export type ShowFormValues = {
   title: string;
   description: string;
-  date: Date;            // gửi Date để axios serialize ISO
+  date: Date;
   location: string;
-  bannerUrl: string;     // giữ nguyên để BE nhận
-  capacity: string;      // backend muốn string
+  bannerUrl: string;
+  capacity: string;
   slogan: string;
 };
 
@@ -25,7 +35,6 @@ type Props = {
 const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) => {
   const [form] = Form.useForm();
 
-  // state để hiển thị preview ảnh
   const [bannerPreview, setBannerPreview] = useState<string | undefined>(
     initial?.bannerUrl && initial.bannerUrl.trim() !== "" ? initial.bannerUrl : undefined
   );
@@ -41,45 +50,59 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
       description: values.description,
       date: jsDate,
       location: values.location,
-      // ⚠️ ở đây lấy từ form, đã được set khi upload
       bannerUrl: values.bannerUrl ?? "",
       capacity: String(values.capacity),
       slogan: values.slogan,
     };
 
     await onSubmit(payload);
-    // nếu form này dùng cho "sửa" thì thường không reset,
-    // nhưng bạn đang reset nên mình giữ nguyên
     form.resetFields();
     setBannerPreview(undefined);
   };
 
-  // upload ảnh lên BE
+  // upload ảnh
   const handleUpload = async (file: File) => {
     const formData = new FormData();
-    formData.append("file", file);
+    // BE nhận "File" (chữ F hoa)
+    formData.append("File", file);
 
     try {
       setUploading(true);
+
+      // axiosClient đã có baseURL = https://api.chamkhoanhkhac.com/api
       const res = await axiosClient.post("/uploads", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const url = res.data?.url as string;
-      // set vào form
+      // 👇 axiosClient đã unwrap -> res chính là { url, fileName, size }
+      const url =
+        (res as any).url ||
+        (res as any).data?.url ||
+        (typeof res === "string" ? res : "");
+
+      if (!url) {
+        message.error("Upload không trả về URL (check lại BE hoặc axios interceptor)");
+        console.log("upload response = ", res);
+        return;
+      }
+
       form.setFieldsValue({ bannerUrl: url });
       setBannerPreview(url);
-    } catch (err) {
+      message.success("Tải ảnh thành công!");
+    } catch (err: any) {
       console.error("Upload failed", err);
+      message.error(
+        err?.response?.data?.message || "Upload ảnh thất bại. Kiểm tra lại /uploads"
+      );
     } finally {
       setUploading(false);
     }
+
+    // chặn antd upload
+    return false;
   };
 
   const handleRemoveImage = () => {
-    // gửi xuống BE là "" để nó xoá ảnh
     form.setFieldsValue({ bannerUrl: "" });
     setBannerPreview(undefined);
   };
@@ -131,12 +154,7 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
         <Input placeholder="Nhập địa điểm tổ chức..." />
       </Form.Item>
 
-      {/* ---- ẢNH BÌA ---- */}
-      <Form.Item
-        label="Ảnh bìa"
-        name="bannerUrl"
-        rules={[{ required: false }]} // sửa: không bắt buộc, vì bạn có upload
-      >
+      <Form.Item label="Ảnh bìa" name="bannerUrl">
         <Space direction="vertical" style={{ width: "100%" }}>
           {bannerPreview ? (
             <>
@@ -152,9 +170,7 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
                   accept="image/*"
                   showUploadList={false}
                   beforeUpload={(file) => {
-                    // tự upload
                     void handleUpload(file);
-                    // chặn antd upload mặc định
                     return false;
                   }}
                 >
@@ -162,11 +178,7 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
                     Đổi ảnh
                   </Button>
                 </Upload>
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleRemoveImage}
-                >
+                <Button danger icon={<DeleteOutlined />} onClick={handleRemoveImage}>
                   Bỏ ảnh
                 </Button>
               </Space>
@@ -177,19 +189,22 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
                 accept="image/*"
                 showUploadList={false}
                 beforeUpload={(file) => {
-                    void handleUpload(file);
-                    return false;
+                  void handleUpload(file);
+                  return false;
                 }}
               >
                 <Button icon={<UploadOutlined />} loading={uploading}>
                   Chọn ảnh & tải lên
                 </Button>
               </Upload>
-              <Input placeholder="Hoặc dán URL ảnh..." onChange={(e) => {
-                const val = e.target.value;
-                form.setFieldsValue({ bannerUrl: val });
-                setBannerPreview(val || undefined);
-              }} />
+              <Input
+                placeholder="Hoặc dán URL ảnh..."
+                onChange={(e) => {
+                  const val = e.target.value;
+                  form.setFieldsValue({ bannerUrl: val });
+                  setBannerPreview(val || undefined);
+                }}
+              />
             </>
           )}
         </Space>
@@ -212,12 +227,7 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
       </Form.Item>
 
       <Form.Item>
-        <Button
-          type="primary"
-          htmlType="submit"
-          className="w-full"
-          loading={loading}
-        >
+        <Button type="primary" htmlType="submit" className="w-full" loading={loading}>
           {submitText ?? "Lưu"}
         </Button>
       </Form.Item>
