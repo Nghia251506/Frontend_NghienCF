@@ -22,3 +22,7 @@ export const updateShow = async (title: string, show: Show): Promise<void> => {
 export const deleteShow = async (id: number): Promise<void> => {
   await axiosClient.delete(`${SHOW_URL}/${id}`);
 };
+
+export const defaultShow = async (id: number): Promise<void> => {
+  await axiosClient.put(`${SHOW_URL}/${id}/set-default`);
+}

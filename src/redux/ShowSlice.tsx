@@ -7,6 +7,7 @@ import {
   createShow,
   updateShow,
   deleteShow,
+  defaultShow
 } from "../service/ShowService";
 
 interface ShowState {
@@ -54,6 +55,17 @@ export const removeShow = createAsyncThunk("shows/remove", async (id: number) =>
   await deleteShow(id);
   return id;
 });
+export const setDefaultShowRemote = createAsyncThunk(
+  "shows/setDefaultRemote",
+  async (id: number, { rejectWithValue }) => {
+    try {
+      await defaultShow(id); // gọi BE
+      return id;             // trả về cho extraReducers
+    } catch (err: any) {
+      return rejectWithValue(err.message ?? "Set default failed");
+    }
+  }
+);
 
 const ShowSlice = createSlice({
   name: "shows",
@@ -115,7 +127,16 @@ const ShowSlice = createSlice({
         if (state.defaultId === action.payload) {
           state.defaultId = state.items.length ? state.items[0].id ?? null : null;
         }
-      });
+      })
+      .addCase(setDefaultShowRemote.fulfilled, (state, action: PayloadAction<number>) => {
+        state.defaultId = action.payload;
+        try {
+          localStorage.setItem("defaultShowId", String(action.payload));
+        } catch {}
+      })
+      .addCase(setDefaultShowRemote.rejected, (state, action) => {
+        state.error = (action.payload as string) ?? "Set default failed";
+      })
   },
 });
 

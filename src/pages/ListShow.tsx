@@ -26,6 +26,7 @@ import {
   removeShow,
   setDefaultShow,
   hydrateDefaultShow,
+  setDefaultShowRemote
 } from "../redux/ShowSlice";
 import ShowForm, { ShowFormValues } from "../components/ShowForm";
 import dayjs from "dayjs";
@@ -57,8 +58,12 @@ const ListShow: React.FC = () => {
   }, [internal]);
 
   const filtered = useMemo(() => {
-    if (!query) return items;
-    return items.filter((x) => x.title?.toLowerCase().includes(query));
+    const activeOnly = items.filter((x) => x.deleteStatus !== "Deleted"); // hoặc !== "NonAction" theo bạn
+
+    if (!query) return activeOnly;
+    return activeOnly.filter((x) =>
+      x.title?.toLowerCase().includes(query)
+    );
   }, [items, query]);
 
   const onEdit = (show: Show) => {
@@ -128,7 +133,14 @@ const ListShow: React.FC = () => {
             <div className="mt-2 flex items-center justify-between">
               <Radio
                 checked={r.id === defaultId}
-                onChange={() => r.id && dispatch(setDefaultShow(r.id))}
+                onChange={() => {
+                  if (!r.id) return;
+                  if (r.id === defaultId) return;
+                  // optimistic: đổi trên FE trước cho mượt
+                  dispatch(setDefaultShow(r.id));
+                  // gọi BE để lưu thật
+                  dispatch(setDefaultShowRemote(r.id));
+                }}
               >
                 Đặt mặc định
               </Radio>
@@ -167,7 +179,14 @@ const ListShow: React.FC = () => {
           <div className="flex justify-center">
             <Radio
               checked={record.id === defaultId}
-              onChange={() => record.id && dispatch(setDefaultShow(record.id))}
+              onChange={() => {
+                if (!record.id) return;
+                if (record.id === defaultId) return;
+                // optimistic: đổi trên FE trước cho mượt
+                dispatch(setDefaultShow(record.id));
+                // gọi BE để lưu thật
+                dispatch(setDefaultShowRemote(record.id));
+              }}
             />
           </div>
         ),

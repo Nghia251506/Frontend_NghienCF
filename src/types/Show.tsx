@@ -7,6 +7,8 @@ export interface Show{
     bannerUrl?: string;
     capacity: string;
     slogan: string;
+    isDefault: 'Active' | 'Inactive';
+    deleteStatus: 'Active' | 'Deleted';
 }
 export interface ShowCreateDto{
     title: string;

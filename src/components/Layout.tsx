@@ -92,7 +92,7 @@ const Layout: React.FC = () => {
       <div className="fixed bottom-5 right-5 flex flex-col items-center gap-3 z-[60] contact-float">
         {/* Zalo */}
         <a
-          href="https://zalo.me/yourZaloNumber"
+          href="https://zalo.me/0827919555"
           target="_blank"
           rel="noreferrer"
           title="Liên hệ Zalo"
@@ -103,7 +103,7 @@ const Layout: React.FC = () => {
 
         {/* Messenger */}
         <a
-          href="https://m.me/yourMessengerId"
+          href="https://m.me/108587363861682"
           target="_blank"
           rel="noreferrer"
           title="Chat Messenger"
@@ -114,7 +114,7 @@ const Layout: React.FC = () => {
 
         {/* Facebook */}
         <a
-          href="https://facebook.com/yourPage"
+          href="https://www.facebook.com/chamshowmusic"
           target="_blank"
           rel="noreferrer"
           title="Trang Facebook"

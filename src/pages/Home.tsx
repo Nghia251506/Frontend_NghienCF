@@ -32,8 +32,19 @@ const Home: React.FC = () => {
 
   const currentShow = useMemo<ShowLike | null>(() => {
     if (!shows || shows.length === 0) return null;
-    const byDefault = defaultId != null ? shows.find((s: any) => s.id === defaultId) : null;
-    return (byDefault ?? shows[0] ?? null) as ShowLike | null;
+
+    // 1. Ưu tiên show mà BE đánh dấu default
+    const fromBackend = shows.find((s: any) => s.defaultShow === "Active" || s.isDefault === true);
+    if (fromBackend) return fromBackend as ShowLike;
+
+    // 2. Nếu BE không có default thì mới dùng cái đã lưu trong localStorage
+    if (defaultId != null) {
+      const fromLocal = shows.find((s: any) => s.id === defaultId);
+      if (fromLocal) return fromLocal as ShowLike;
+    }
+
+    // 3. Fallback
+    return shows[0] as ShowLike;
   }, [shows, defaultId]);
 
   // Ảnh nền với fallback public/default.jpg
@@ -150,19 +161,19 @@ const Home: React.FC = () => {
               }}
             >
               <Calendar className="h-10 w-10 sm:h-12 sm:w-12 mb-4"
-                        style={{ color: "rgb(var(--color-primary))" }} />
+                style={{ color: "rgb(var(--color-primary))" }} />
               <h3 className="text-lg sm:text-xl font-bold mb-2" style={{ color: "rgb(var(--color-text))" }}>
                 Thời gian
               </h3>
               <p style={{ color: "rgb(var(--color-text))", opacity: 0.85 }} className="text-sm sm:text-base">
                 {currentShow
                   ? new Date(currentShow.date as any).toLocaleString("vi-VN", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
                   : "Đang cập nhật"}
               </p>
             </div>
@@ -176,7 +187,7 @@ const Home: React.FC = () => {
               }}
             >
               <MapPin className="h-10 w-10 sm:h-12 sm:w-12 mb-4"
-                      style={{ color: "rgb(var(--color-primary))" }} />
+                style={{ color: "rgb(var(--color-primary))" }} />
               <h3 className="text-lg sm:text-xl font-bold mb-2" style={{ color: "rgb(var(--color-text))" }}>
                 Địa điểm
               </h3>
@@ -215,7 +226,7 @@ const Home: React.FC = () => {
               }}
             >
               <Users className="h-10 w-10 sm:h-12 sm:w-12 mb-4"
-                     style={{ color: "rgb(var(--color-primary))" }} />
+                style={{ color: "rgb(var(--color-primary))" }} />
               <h3 className="text-lg sm:text-xl font-bold mb-2" style={{ color: "rgb(var(--color-text))" }}>
                 Sức chứa
               </h3>
