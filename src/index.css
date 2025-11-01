@@ -10,7 +10,7 @@
   --color-text: 255 255 255;
   --color-muted: 156 163 175;
   --color-navbar: 0 0 0;
-  --color-text-while: rgb(255, 255, 255);
+  --color-text-while: rgb(255, 255, 255) !important;
 
   /* scrollbar (không cần rgb) */
   --scrollbar-thumb: #f59e0b;

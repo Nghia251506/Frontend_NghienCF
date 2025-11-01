@@ -47,11 +47,11 @@ const Layout: React.FC = () => {
               <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
                 <Link
                   to="/"
-                  className="flex items-center text-gray-400 gap-2 px-3 py-2 rounded-lg text-sm sm:text-base transition"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm sm:text-base transition"
                   style={{
                     color: isActive("/")
                       ? "rgba(var(--color-primary))"
-                      : "rgba(var(--color-text), 0.8)",
+                      : "rgba(var(--color-text))",
                     backgroundColor: isActive("/")
                       ? "rgba(var(--color-primary), 0.2)"
                       : "transparent",
@@ -67,7 +67,7 @@ const Layout: React.FC = () => {
                   style={{
                     color: isActive("/booking")
                       ? "rgb(var(--color-primary))"
-                      : "rgb(var(--color-text), 0.8)",
+                      : "rgb(var(--color-text))",
                     backgroundColor: isActive("/booking")
                       ? "rgba(var(--color-primary), 0.2)"
                       : "transparent",

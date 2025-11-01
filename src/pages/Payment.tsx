@@ -7,6 +7,8 @@ import { Clock, CheckCircle, Download, XCircle } from "lucide-react";
 import axiosClient from "../axios/axiosClient";
 import { useBooking } from "../contexts/BookingContext";
 import { devForcePay } from "../service/TicketService";
+import { useSelector } from "react-redux";
+import { RootState } from "../redux/store";
 
 /* ====== Types ====== */
 type BookingData = {
@@ -400,7 +402,6 @@ const TicketDisplay: React.FC<{
 }> = ({ bookingData, tickets, ticketColor, onBackHome }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const firstTicket = useMemo(() => tickets[0], [tickets]);
-
   const isMobile = () =>
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
       navigator.userAgent
@@ -438,7 +439,7 @@ const TicketDisplay: React.FC<{
   };
 
   const bgGradient = `linear-gradient(135deg, ${ticketColor}33, ${ticketColor}55)`;
-  const borderColor = ticketColor;
+  const borderColor = firstTicket.color;
 
   const groupedByName = useMemo(() => {
     const map = new Map<string, Ticket[]>();
@@ -520,7 +521,7 @@ const TicketDisplay: React.FC<{
                 style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
               >
                 <p className="text-gray-200 text-sm">Mã ghế</p>
-                <p className="text-white font-semibold text-sm sm:text-base">
+                <p className="!text-white font-semibold text-sm sm:text-base">
                   {firstTicket?.ticketCode}
                 </p>
               </div>
@@ -530,7 +531,7 @@ const TicketDisplay: React.FC<{
                 style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
               >
                 <p className="text-gray-200 text-sm">Tổng tiền</p>
-                <p className="text-white font-semibold text-sm sm:text-base">
+                <p className="!text-white font-semibold text-sm sm:text-base">
                   {bookingData.totalPrice.toLocaleString("vi-VN")}đ
                 </p>
               </div>
