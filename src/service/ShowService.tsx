@@ -5,7 +5,6 @@ const SHOW_URL = "/show";
 
 export const getAllShows = async (): Promise<Show[]> => {
   const data = await axiosClient.get(`${SHOW_URL}/getall`);
-  console.log(data);
   return data;
 };
 

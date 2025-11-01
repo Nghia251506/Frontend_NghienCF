@@ -47,7 +47,6 @@ const Home: React.FC = () => {
     // 3. Fallback
     return shows[0] as ShowLike;
   }, [shows, defaultId]);
-console.log("Đây là ở Local", currentShow)
   // Ảnh nền với fallback public/default.jpg
   const backgroundUrl = currentShow?.bannerUrl?.trim()
     ? currentShow.bannerUrl!
