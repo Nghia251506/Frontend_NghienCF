@@ -39,7 +39,7 @@ const Booking: React.FC = () => {
     if (!shows || shows.length === 0) return null;
 
     const beDefault = shows.find(
-      (s: any) => s.defaultShow === "Active" || s.isDefault === true
+      (s: any) => s.isDefault === "Active" || s.isDefault === true
     );
     if (beDefault) return beDefault.id!;
 
