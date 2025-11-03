@@ -500,7 +500,7 @@ const TicketDisplay: React.FC<{
                   className="p-3 sm:p-4 rounded-lg"
                   style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
                 >
-                  <p className="text-gray-200 text-sm">Loại combo</p>
+                  <p className="text-white text-sm">Loại combo</p>
                   <p className="font-semibold text-sm sm:text-base" style={{ color: borderColor }}>
                     {bookingData.combo}
                   </p>

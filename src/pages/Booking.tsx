@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
-import { fetchShows,hydrateDefaultShow } from "../redux/ShowSlice";
+import { fetchShows, hydrateDefaultShow } from "../redux/ShowSlice";
 import { fetchByShowId } from "../redux/TicketTypeSlice";
 import { createBooking } from "../redux/BookingSlice";
 import { useBooking } from "../contexts/BookingContext";
@@ -212,7 +212,17 @@ const Booking: React.FC = () => {
                     </div>
                   </div>
                 )}
-
+                {outOfStock && (
+                  <div className="absolute top-3 right-3">
+                    <span
+                      className="bg-red-700 text-white text-[11px] sm:text-xs font-bold tracking-wide px-2.5 py-1 rounded-full
+                 shadow-lg shadow-red-900/30 border border-white/10 uppercase"
+                      aria-label="Sold out"
+                    >
+                      Sold out
+                    </span>
+                  </div>
+                )}
                 <div className="text-center mb-5">
                   <h3 className="text-xl sm:text-2xl font-bold !text-white mb-2">
                     {tt.name}
@@ -257,10 +267,10 @@ const Booking: React.FC = () => {
 
                 <button
                   className={`w-full py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${outOfStock
-                      ? "bg-gray-600 text-white cursor-not-allowed"
-                      : active
-                        ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
-                        : "bg-gray-700 hover:bg-gray-600 text-white"
+                    ? "bg-gray-600 text-white cursor-not-allowed"
+                    : active
+                      ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
+                      : "bg-gray-700 hover:bg-gray-600 text-white"
                     }`}
                   disabled={outOfStock}
                 >
@@ -351,8 +361,8 @@ const Booking: React.FC = () => {
                 type="submit"
                 disabled={!selectedType}
                 className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-sm sm:text-base ${selectedType
-                    ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
-                    : "bg-gray-600 text-white cursor-not-allowed"
+                  ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black"
+                  : "bg-gray-600 text-white cursor-not-allowed"
                   }`}
               >
                 Đặt ngay

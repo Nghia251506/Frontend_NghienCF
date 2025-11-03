@@ -1,3 +1,5 @@
+import { TicketType } from "./TicketType";
+
 export interface Ticket {
   id: number;
   bookingId: number;
@@ -7,7 +9,7 @@ export interface Ticket {
   // thêm 2 field tùy API của bạn
   holderName?: string;      // tên người cầm vé (nếu có)
   customerName?: string;    // tên người đặt từ backend (nếu trả)
-  color?:string;
+  ticketType?: TicketType;
 }
 
 export interface TicketCreateDto {

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { fetchShows } from "../redux/ShowSlice";
+import { fetchTicketTypes } from "../redux/TicketTypeSlice";
 
 import {
   Table,
@@ -21,6 +22,7 @@ import {
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
+import { TicketType } from "../types/TicketType";
 
 import { getAllTickets, updateTicket } from "../service/TicketService";
 
@@ -34,6 +36,7 @@ type TicketRow = {
   phone?: string;           // từ booking
   paymentTime?: string;     // từ booking
   showId?: number;          // để lọc theo show
+  ticketType?: TicketType;
 };
 
 type Paged<T> = { items: T[]; total: number };
@@ -64,11 +67,14 @@ const TicketAdmin: React.FC = () => {
     showSizeChanger: true,
     pageSizeOptions: [10, 20, 50, 100],
   });
-
+  const types = useSelector((s: RootState) => s.ticketTypes.items);
   // load shows 1 lần
   useEffect(() => {
     dispatch(fetchShows());
   }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchTicketTypes());
+  }, [dispatch])
 
   // query builder
   const queryParams = useMemo(() => {
@@ -229,11 +235,15 @@ const TicketAdmin: React.FC = () => {
         render: (v: string) => <Tag color="gold">{v}</Tag>,
       },
       {
-        title: "Ngày thanh toán",
-        dataIndex: "paymentTime",
+        title: "Loại combo",
+        dataIndex: "ticketType",
         width: 200,
         responsive: ["md"],
-        render: (v: string) => toDateTime(v),
+        render: (_: any, r) => (
+          <Tag color={r.ticketType?.color || "default"} className="m-0">
+            {r.ticketType?.name ?? "-"}
+          </Tag>
+        ),
       },
       {
         title: "Trạng thái",
