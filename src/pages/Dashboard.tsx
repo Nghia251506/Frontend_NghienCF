@@ -191,14 +191,14 @@ const Dashboard: React.FC = () => {
               <DollarSign className="text-yellow-400" />
               <div>
                 <p className="text-xs text-gray-400">Doanh thu</p>
-                <p className="text-white font-bold text-lg">{fmtMoney(totalRevenue)} đ</p>
+                <p className="!text-white font-bold text-lg">{fmtMoney(totalRevenue)} đ</p>
               </div>
             </div>
             <div className="bg-gray-800/50 border border-yellow-500/20 rounded-xl p-4 flex items-center gap-3">
               <Ticket className="text-yellow-400" />
               <div>
                 <p className="text-xs text-gray-400">Số vé</p>
-                <p className="text-white font-bold text-lg">{fmtMoney(totalTickets)}</p>
+                <p className="!text-white font-bold text-lg">{fmtMoney(totalTickets)}</p>
               </div>
             </div>
           </div>
@@ -210,7 +210,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-gray-800/50 border border-yellow-500/20 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="text-yellow-400" />
-              <h3 className="text-white font-semibold">Doanh thu theo show</h3>
+              <h3 className="!text-white font-semibold">Doanh thu theo show</h3>
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -230,7 +230,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-gray-800/50 border border-yellow-500/20 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <Ticket className="text-yellow-400" />
-              <h3 className="text-white font-semibold">Số vé đã bán theo show</h3>
+              <h3 className="!text-white font-semibold">Số vé đã bán theo show</h3>
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -252,7 +252,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-gray-800/50 border border-yellow-500/20 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="text-yellow-400" />
-              <h3 className="text-white font-semibold">Doanh thu theo tuần (ISO)</h3>
+              <h3 className="!text-white font-semibold">Doanh thu theo tuần (ISO)</h3>
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -272,7 +272,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-gray-800/50 border border-yellow-500/20 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="text-yellow-400" />
-              <h3 className="text-white font-semibold">Doanh thu theo tháng</h3>
+              <h3 className="!text-white font-semibold">Doanh thu theo tháng</h3>
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">

@@ -10,6 +10,9 @@ export interface Ticket {
   holderName?: string;      // tên người cầm vé (nếu có)
   customerName?: string;    // tên người đặt từ backend (nếu trả)
   ticketType?: TicketType;
+  image_url?: string;
+  date?: string | number | Date;
+  location?: string;
 }
 
 export interface TicketCreateDto {

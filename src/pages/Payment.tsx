@@ -36,6 +36,9 @@ type Ticket = {
   ticketTypeColor?: string;
   holderName?: string;
   customerName?: string;
+  image_url?: string;
+  date?: string | number | Date;
+  location?: string;
 };
 
 /* ====== API nhỏ ====== */
@@ -439,6 +442,7 @@ const TicketDisplay: React.FC<{
   };
 
   const bgGradient = `linear-gradient(135deg, ${ticketColor}33, ${ticketColor}55)`;
+  const background_image = firstTicket.image_url;
   const borderColor = firstTicket.color;
 
   const groupedByName = useMemo(() => {
@@ -470,8 +474,7 @@ const TicketDisplay: React.FC<{
           <div
             className="absolute inset-0 opacity-15"
             style={{
-              backgroundImage:
-                "url('https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800')",
+              backgroundImage: background_image,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
@@ -520,9 +523,16 @@ const TicketDisplay: React.FC<{
                 className="p-3 sm:p-4 rounded-lg"
                 style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
               >
-                <p className="text-gray-200 text-sm">Mã ghế</p>
+                <p className="text-gray-200 text-sm">Thời gian</p>
                 <p className="!text-white font-semibold text-sm sm:text-base">
-                  {firstTicket?.ticketCode}
+                  {firstTicket ? new Date(firstTicket.date as any).toLocaleString("vi-VN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                  : "Đang cập nhật"}
                 </p>
               </div>
 
@@ -530,9 +540,9 @@ const TicketDisplay: React.FC<{
                 className="p-3 sm:p-4 rounded-lg"
                 style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
               >
-                <p className="text-gray-200 text-sm">Tổng tiền</p>
+                <p className="text-gray-200 text-sm">Địa điểm</p>
                 <p className="!text-white font-semibold text-sm sm:text-base">
-                  {bookingData.totalPrice.toLocaleString("vi-VN")}đ
+                  {firstTicket.location}
                 </p>
               </div>
 
@@ -540,7 +550,7 @@ const TicketDisplay: React.FC<{
                 <div className="mt-6 text-gray-300 text-sm space-y-4">
                   {groupedByName.map(([name, list]) => (
                     <div key={name}>
-                      <div className="font-semibold mb-2">
+                      <div className="font-semibold mb-2 !text-white">
                         Ghế của <span className="!text-white">{name}</span>
                       </div>
                       <div className="bg-gray-800/50 border border-yellow-500/20 rounded-lg p-3">
