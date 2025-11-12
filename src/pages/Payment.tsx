@@ -9,6 +9,7 @@ import { useBooking } from "../contexts/BookingContext";
 import { devForcePay } from "../service/TicketService";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { Show } from "../types/Show";
 
 /* ====== Types ====== */
 type BookingData = {
@@ -25,7 +26,6 @@ type BookingData = {
   comboColor?: string;
   ticketTypeColor?: string;
 };
-
 type Ticket = {
   id: number;
   bookingId: number;
@@ -43,7 +43,7 @@ type Ticket = {
 
 /* ====== API nhỏ ====== */
 async function apiGetTicketsByBooking(bookingId: number): Promise<Ticket[]> {
-  const  data  = await axiosClient.get<Ticket[]>(`ticket/by-booking/${bookingId}`);
+  const data = await axiosClient.get<Ticket[]>(`ticket/by-booking/${bookingId}`);
   return data;
 }
 
@@ -97,7 +97,7 @@ const Payment: React.FC = () => {
       setBookingData(mergedData);
       try {
         sessionStorage.setItem("bookingData", JSON.stringify(mergedData));
-      } catch {}
+      } catch { }
     }
   }, [bookingData, mergedData, setBookingData]);
 
@@ -141,7 +141,7 @@ const Payment: React.FC = () => {
           const dataUrl = await QRCode.toDataURL(paymentQrString);
           setQrCodeSrc(dataUrl);
           return;
-        } catch {}
+        } catch { }
       }
 
       // 3) BE trả URL
@@ -164,7 +164,7 @@ const Payment: React.FC = () => {
           const dataUrl = await QRCode.toDataURL(paymentQrUrl);
           setQrCodeSrc(dataUrl);
           return;
-        } catch {}
+        } catch { }
       }
 
       setQrCodeSrc("");
@@ -240,6 +240,13 @@ const Payment: React.FC = () => {
 
   // --- Khi đã có vé ---
   if (paymentStatus === "success" && tickets.length > 0) {
+     useEffect(() => {
+    if (!bookingData?.bookingId) return;
+    const key = "ga_purchase_" + bookingData.bookingId;
+    if (sessionStorage.getItem(key)) return; // tránh bắn lại khi refresh
+
+    sessionStorage.setItem(key, "1");
+  }, [bookingData]);
     return (
       <TicketDisplay
         bookingData={mergedData}
@@ -405,10 +412,20 @@ const TicketDisplay: React.FC<{
 }> = ({ bookingData, tickets, ticketColor, onBackHome }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const firstTicket = useMemo(() => tickets[0], [tickets]);
+  const { items: shows } = useSelector((s: RootState) => s.shows);
   const isMobile = () =>
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
       navigator.userAgent
     );
+  const currentShow = useMemo<Show | null>(() => {
+    if (!shows || shows.length === 0) return null;
+
+    // 1. Ưu tiên show mà BE đánh dấu default
+    const fromBackend = shows.find((s: any) => s.isDefault === "Active" || s.isDefault === true);
+    if (fromBackend) return fromBackend as Show;
+
+    return null;
+  }, [shows]);
 
   const handleSaveImage = async () => {
     if (!cardRef.current) return;
@@ -440,6 +457,21 @@ const TicketDisplay: React.FC<{
     a.download = filename;
     a.click();
   };
+ 
+  const displayTime = (() => {
+    const v =
+      currentShow?.date;
+
+    return v
+      ? new Date(v as any).toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      : "Đang cập nhật";
+  })();
 
   const bgGradient = `linear-gradient(135deg, ${ticketColor}33, ${ticketColor}55)`;
   const background_image = firstTicket.image_url;
@@ -525,14 +557,7 @@ const TicketDisplay: React.FC<{
               >
                 <p className="text-gray-200 text-sm">Thời gian</p>
                 <p className="!text-white font-semibold text-sm sm:text-base">
-                  {firstTicket ? new Date(firstTicket.date as any).toLocaleString("vi-VN", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                  : "Đang cập nhật"}
+                  {displayTime}
                 </p>
               </div>
 
@@ -542,7 +567,7 @@ const TicketDisplay: React.FC<{
               >
                 <p className="text-gray-200 text-sm">Địa điểm</p>
                 <p className="!text-white font-semibold text-sm sm:text-base">
-                  {firstTicket.location}
+                  {currentShow?.location || "Đang cập nhật"}
                 </p>
               </div>
 

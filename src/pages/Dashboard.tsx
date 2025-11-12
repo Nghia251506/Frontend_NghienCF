@@ -16,6 +16,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Calendar, Ticket, DollarSign } from "lucide-react";
+import GaPanel from "./GaPanel";
 
 // ---------- Local helpers ----------
 function toDateSafe(x: unknown): Date | null {
@@ -223,6 +224,15 @@ const Dashboard: React.FC = () => {
                   <Line type="monotone" dataKey="revenue" name="Doanh thu" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="bg-gray-800/50 border border-yellow-500/20 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="text-yellow-400" />
+              <h3 className="!text-white font-semibold">Lượt truy cập website</h3>
+            </div>
+            <div>
+              <GaPanel />
             </div>
           </div>
 

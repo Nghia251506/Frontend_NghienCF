@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import LayoutAdmin from "./components/LayoutAdmin";
 import Home from "./pages/Home";
@@ -19,13 +19,13 @@ import type { RootState, AppDispatch } from "./redux/store";
 import { fetchTheme } from "./redux/ThemeSlice";
 import { applyTheme } from "./applyTheme";
 import PrivateRoute from "./Auth/PrivateRoute";
+
 // import RouteChangeLogger from "./utils/RouteChangeLogger";
 
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
   const { current: theme, loading } = useSelector((s: RootState) => s.theme);
   const [bootstrapped, setBootstrapped] = useState(false);
-
   useEffect(() => { dispatch(fetchTheme()); }, [dispatch]);
 
   // bơm biến càng sớm càng tốt
@@ -36,7 +36,7 @@ export default function App() {
 
   if (!bootstrapped) {
     // Splash rất nhẹ để tránh "flash trắng"
-    return <div style={{minHeight:'100vh', background:'rgb(var(--color-bg))'}} />;
+    return <div style={{ minHeight: '100vh', background: 'rgb(var(--color-bg))' }} />;
   }
 
   return (

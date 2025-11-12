@@ -5,6 +5,7 @@ import bookingReducer from "./BookingSlice"
 import tickettypeReducer from "./TicketTypeSlice"
 import ticketsReducer from "./TicketSlice";
 import themeReducer from"./ThemeSlice.ts"
+import gaReducer from "./GaSlice";
 
 
 export const store = configureStore({
@@ -15,6 +16,7 @@ export const store = configureStore({
     ticketTypes: tickettypeReducer,
     tickets: ticketsReducer,
     theme: themeReducer,
+    ga:gaReducer,
   },
 });
 

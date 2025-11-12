@@ -11,6 +11,8 @@ import {
 } from "../service/ShowService";
 
 interface ShowState {
+  find(arg0: (s: any) => boolean): unknown;
+  length: number;
   items: Show[];
   selected?: Show | null;
   loading: boolean;
