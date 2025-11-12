@@ -4,6 +4,9 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { fetchShows } from "../redux/ShowSlice";
 import { fetchTicketTypes } from "../redux/TicketTypeSlice";
+import { Modal } from "antd";
+import html2canvas from "html2canvas";
+import type { Show } from "../types/Show";
 
 import {
   Table,
@@ -25,6 +28,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { TicketType } from "../types/TicketType";
 
 import { getAllTickets, updateTicket } from "../service/TicketService";
+
 
 type TicketRow = {
   id: number;
@@ -52,6 +56,17 @@ const TicketAdmin: React.FC = () => {
   // shows cho bộ lọc
   const shows = useSelector((s: RootState) => s.shows.items);
   const [showId, setShowId] = useState<number | undefined>(undefined);
+  const [reissueOpen, setReissueOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
+
+  const openReissue = (row: TicketRow) => {
+    setSelectedTicket(row);
+    setReissueOpen(true);
+  };
+  const closeReissue = () => {
+    setReissueOpen(false);
+    setSelectedTicket(null);
+  };
 
   // bộ lọc
   const [ticketCode, setTicketCode] = useState<string>("");
@@ -269,9 +284,106 @@ const TicketAdmin: React.FC = () => {
           />
         ),
       },
+      {
+        title: "Cấp lại vé",
+        dataIndex: "actions",
+        width: 140,
+        align: "center",
+        render: (_: any, record) => (
+          <Button
+            size="small"
+            type="primary"
+            onClick={() => openReissue(record)}
+            disabled={record.status !== "valid"} // chỉ cho vé hợp lệ/đã thanh toán
+          >
+            Cấp lại
+          </Button>
+        ),
+      },
     ],
     [pagination.current, pagination.pageSize]
   );
+  const TicketPreview: React.FC<{ ticket: TicketRow; show?: Show }> = ({ ticket, show }) => {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const color = ticket.ticketType?.color || "#f59e0b"; // fallback vàng
+    const bg = show?.bannerUrl || ticket.ticketType?.color;
+    const dateText =
+      (show?.date && dayjs(show.date).format("DD/MM/YYYY HH:mm")) ||
+      (ticket.paymentTime && dayjs(ticket.paymentTime).format("DD/MM/YYYY HH:mm")) ||
+      (ticket.issuedAt && dayjs(ticket.issuedAt).format("DD/MM/YYYY HH:mm")) ||
+      "Đang cập nhật";
+
+    const handleDownload = async () => {
+      if (!cardRef.current) return;
+      const canvas = await html2canvas(cardRef.current, {
+        useCORS: true,
+        scale: window.devicePixelRatio || 2,
+        backgroundColor: null,
+      });
+      const dataUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `ticket-${ticket.ticketCode.replace(/[#\s]/g, "")}-reissue.png`;
+      a.click();
+    };
+
+    return (
+      <div className="flex flex-col items-center">
+        <div
+          ref={cardRef}
+          className="relative overflow-hidden rounded-2xl shadow-2xl w-[360px]"
+          style={{ background: bg, border: `1px solid ${color}55` }}
+        >
+          <div className="relative z-10 p-6">
+            <div className="text-center mb-4">
+              <h1 className="text-xl font-bold" >
+                {ticket.ticketType?.name?.toUpperCase() || "TICKET"}
+              </h1>
+              <p className="text-black text-sm">Re-issued Ticket</p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg" style={{ background: "#00000040", border: `1px solid ${color}33` }}>
+                <p className="!text-white text-sm">Tên khách hàng</p>
+                <p className="text-white font-semibold text-base">{ticket.customerName || "-"}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg" style={{ background: "#00000040", border: `1px solid ${color}33` }}>
+                  <p className="!text-white text-sm">Mã vé</p>
+                  <p className="text-white font-semibold">{ticket.ticketCode}</p>
+                </div>
+                <div className="p-3 rounded-lg" style={{ background: "#00000040", border: `1px solid ${color}33` }}>
+                  <p className="!text-white text-sm">Trạng thái</p>
+                  <p className="text-white font-semibold">{ticket.status}</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg" style={{ background: "#00000040", border: `1px solid ${color}33` }}>
+                <p className="!text-white text-sm">Thời gian</p>
+                <p className="text-white font-semibold">{dateText}</p>
+              </div>
+
+              <div className="p-3 rounded-lg" style={{ background: "#00000040", border: `1px solid ${color}33` }}>
+                <p className="!text-white text-sm">Địa điểm</p>
+                <p className="text-white font-semibold">{show?.location || "-"}</p>
+              </div>
+            </div>
+
+            <div className="text-center mt-4">
+              <div className="w-full h-8 rounded-full mb-2 flex items-center justify-center" style={{ background: `${color}33` }}>
+                <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: color }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Button className="mt-3" type="primary" onClick={handleDownload}>
+          Tải ảnh vé
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="w-full">
@@ -342,6 +454,21 @@ const TicketAdmin: React.FC = () => {
             className="min-w-[760px] md:min-w-0 rounded-xl"
             scroll={{ x: 760 }}
           />
+          <Modal
+            open={reissueOpen}
+            onCancel={closeReissue}
+            footer={null}
+            width={420}
+            title="Cấp lại vé"
+            destroyOnClose
+          >
+            {selectedTicket && (
+              <TicketPreview
+                ticket={selectedTicket}
+                show={shows.find((s) => s.id === selectedTicket.showId)}
+              />
+            )}
+          </Modal>
         </div>
       </Card>
     </div>
