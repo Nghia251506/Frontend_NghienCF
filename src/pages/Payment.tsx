@@ -43,8 +43,9 @@ type Ticket = {
 
 /* ====== API nhỏ ====== */
 async function apiGetTicketsByBooking(bookingId: number): Promise<Ticket[]> {
-  const data = await axiosClient.get<Ticket[]>(`ticket/by-booking/${bookingId}`);
-  return data;
+  const res = await axiosClient.get<Ticket[]>(`ticket/by-booking/${bookingId}`);
+  // axiosClient của anh thường trả sẵn data; nếu không thì đổi thành res.data
+  return res as unknown as Ticket[];
 }
 
 /* ====== Helper: lấy màu từ dữ liệu ====== */
@@ -97,7 +98,7 @@ const Payment: React.FC = () => {
       setBookingData(mergedData);
       try {
         sessionStorage.setItem("bookingData", JSON.stringify(mergedData));
-      } catch { }
+      } catch {}
     }
   }, [bookingData, mergedData, setBookingData]);
 
@@ -141,7 +142,7 @@ const Payment: React.FC = () => {
           const dataUrl = await QRCode.toDataURL(paymentQrString);
           setQrCodeSrc(dataUrl);
           return;
-        } catch { }
+        } catch {}
       }
 
       // 3) BE trả URL
@@ -164,7 +165,7 @@ const Payment: React.FC = () => {
           const dataUrl = await QRCode.toDataURL(paymentQrUrl);
           setQrCodeSrc(dataUrl);
           return;
-        } catch { }
+        } catch {}
       }
 
       setQrCodeSrc("");
@@ -235,21 +236,29 @@ const Payment: React.FC = () => {
     setPaymentStatus("pending");
   };
 
-  // --- Nếu chưa có dữ liệu, hiển thị loading ngắn ---
-  if (!mergedData) return <div className="text-white p-6">Đang tải thông tin thanh toán…</div>;
+  // 🔒 GA purchase marker (đặt ở top-level, không để trong if/return)
+  useEffect(() => {
+    if (paymentStatus !== "success") return;
+    if (tickets.length === 0) return;
+    const id = bookingData?.bookingId;
+    if (!id) return;
+
+    const key = "ga_purchase_" + id;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+
+    // Nếu có thư viện GA riêng thì gọi ở đây (giữ try/catch an toàn)
+    // try { purchase({ transaction_id: id, value: mergedData?.totalPrice }) } catch {}
+  }, [paymentStatus, tickets.length, bookingData]);
+
+  // --- Nếu chưa có dữ liệu, render khung chờ (hooks vẫn giữ nguyên ở trên) ---
+  const isLoadingInfo = !mergedData;
 
   // --- Khi đã có vé ---
-  if (paymentStatus === "success" && tickets.length > 0) {
-     useEffect(() => {
-    if (!bookingData?.bookingId) return;
-    const key = "ga_purchase_" + bookingData.bookingId;
-    if (sessionStorage.getItem(key)) return; // tránh bắn lại khi refresh
-
-    sessionStorage.setItem(key, "1");
-  }, [bookingData]);
+  if (!isLoadingInfo && paymentStatus === "success" && tickets.length > 0) {
     return (
       <TicketDisplay
-        bookingData={mergedData}
+        bookingData={mergedData!}
         tickets={tickets}
         ticketColor={ticketColor}
         onBackHome={() => navigate("/")}
@@ -266,7 +275,11 @@ const Payment: React.FC = () => {
             Thanh toán
           </h1>
 
-          {paymentStatus === "pending" && (
+          {isLoadingInfo && (
+            <div className="text-white p-6 text-center">Đang tải thông tin thanh toán…</div>
+          )}
+
+          {!isLoadingInfo && paymentStatus === "pending" && (
             <div className="text-center">
               <div className="mb-6">
                 {qrCodeSrc ? (
@@ -281,18 +294,20 @@ const Payment: React.FC = () => {
               </div>
               <p className="text-red-400 mb-6 text-sm sm:text-base">
                 Quét mã QR để thanh toán, vui lòng nhập chính xác nội dung:{" "}
-                <span className="font-mono text-yellow-200">BOOKING{mergedData.bookingId}</span>
+                <span className="font-mono text-yellow-200">
+                  BOOKING{mergedData!.bookingId}
+                </span>
               </p>
               <div className="bg-gray-700/50 p-4 sm:p-6 rounded-lg mb-6">
                 <h3 className="text-base sm:text-lg font-semibold !text-white mb-2">
                   Chi tiết đơn hàng
                 </h3>
                 <div className="text-gray-300 space-y-1 text-sm sm:text-base">
-                  <p>Khách hàng: {mergedData.customerName}</p>
-                  <p>Loại combo: {mergedData.combo}</p>
-                  <p>Số lượng: {mergedData.quantity} ghế</p>
+                  <p>Khách hàng: {mergedData!.customerName}</p>
+                  <p>Loại combo: {mergedData!.combo}</p>
+                  <p>Số lượng: {mergedData!.quantity} ghế</p>
                   <p className="text-lg sm:text-xl font-bold !text-yellow-400">
-                    Tổng tiền: {mergedData.totalPrice.toLocaleString("vi-VN")}đ
+                    Tổng tiền: {mergedData!.totalPrice.toLocaleString("vi-VN")}đ
                   </p>
                 </div>
               </div>
@@ -300,7 +315,7 @@ const Payment: React.FC = () => {
               <button
                 onClick={handlePayment}
                 className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-lg transition-colors text-sm sm:text-base"
-                disabled={!qrCodeSrc || polling || !mergedData.bookingId}
+                disabled={!qrCodeSrc || polling || !mergedData!.bookingId}
               >
                 Tôi đã thanh toán
               </button>
@@ -310,7 +325,7 @@ const Payment: React.FC = () => {
                   <button
                     onClick={async () => {
                       try {
-                        await devForcePay(mergedData.bookingId!);
+                        await devForcePay(mergedData!.bookingId!);
                       } catch (e) {
                         console.error(e);
                       }
@@ -322,10 +337,10 @@ const Payment: React.FC = () => {
                 </div>
               )}
 
-              {mergedData.paymentQrUrl && !mergedData.paymentQrUrl.startsWith("data:image") && (
+              {mergedData!.paymentQrUrl && !mergedData!.paymentQrUrl.startsWith("data:image") && (
                 <div className="mt-4">
                   <a
-                    href={mergedData.paymentQrUrl}
+                    href={mergedData!.paymentQrUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="text-yellow-400 underline text-sm"
@@ -337,7 +352,7 @@ const Payment: React.FC = () => {
             </div>
           )}
 
-          {paymentStatus === "processing" && (
+          {!isLoadingInfo && paymentStatus === "processing" && (
             <div className="text-center">
               <Clock className="h-12 w-12 sm:h-16 sm:w-16 text-yellow-400 mx-auto mb-4 animate-spin" />
               <h3 className="text-xl sm:text-2xl font-bold !text-white mb-4">
@@ -352,7 +367,7 @@ const Payment: React.FC = () => {
             </div>
           )}
 
-          {paymentStatus === "failed" && (
+          {!isLoadingInfo && paymentStatus === "failed" && (
             <div className="text-center">
               <XCircle className="h-12 w-12 sm:h-16 sm:w-16 text-red-500 mx-auto mb-4" />
               <h3 className="text-xl sm:text-2xl font-bold !text-white mb-3">
@@ -363,7 +378,7 @@ const Payment: React.FC = () => {
                 <span className="text-red-400 font-semibold">đúng nội dung chuyển khoản</span>:
                 <br />
                 <span className="text-yellow-300 font-mono">
-                  BOOKING{mergedData.bookingId}
+                  BOOKING{mergedData!.bookingId}
                 </span>
               </p>
               <div className="flex items-center justify-center gap-3">
@@ -373,10 +388,10 @@ const Payment: React.FC = () => {
                 >
                   Quay lại trang thanh toán
                 </button>
-                {mergedData.paymentQrUrl &&
-                  !mergedData.paymentQrUrl.startsWith("data:image") && (
+                {mergedData!.paymentQrUrl &&
+                  !mergedData!.paymentQrUrl.startsWith("data:image") && (
                     <a
-                      href={mergedData.paymentQrUrl}
+                      href={mergedData!.paymentQrUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold py-2 px-5 rounded-lg transition-colors text-sm sm:text-base"
@@ -388,7 +403,7 @@ const Payment: React.FC = () => {
             </div>
           )}
 
-          {paymentStatus === "success" && tickets.length === 0 && (
+          {!isLoadingInfo && paymentStatus === "success" && tickets.length === 0 && (
             <div className="text-center">
               <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-green-400 mx-auto mb-4" />
               <h3 className="text-xl sm:text-2xl font-bold !text-white mb-4">
@@ -419,11 +434,8 @@ const TicketDisplay: React.FC<{
     );
   const currentShow = useMemo<Show | null>(() => {
     if (!shows || shows.length === 0) return null;
-
-    // 1. Ưu tiên show mà BE đánh dấu default
     const fromBackend = shows.find((s: any) => s.isDefault === "Active" || s.isDefault === true);
     if (fromBackend) return fromBackend as Show;
-
     return null;
   }, [shows]);
 
@@ -437,7 +449,6 @@ const TicketDisplay: React.FC<{
     const dataUrl = canvas.toDataURL("image/png");
     const filename = `ticket-${firstTicket?.ticketCode || "unknown"}.png`;
 
-    // mobile → mở ảnh để user tự lưu
     if (isMobile()) {
       const win = window.open();
       if (win) {
@@ -445,37 +456,34 @@ const TicketDisplay: React.FC<{
           `<title>${filename}</title><img src="${dataUrl}" style="width:100%;height:auto;" />`
         );
       } else {
-        // fallback nếu popup bị chặn
         window.location.href = dataUrl;
       }
       return;
     }
 
-    // desktop → tải file
     const a = document.createElement("a");
     a.href = dataUrl;
     a.download = filename;
     a.click();
   };
- 
-  const displayTime = (() => {
-    const v =
-      currentShow?.date;
 
+  const displayTime = (() => {
+    const v = currentShow?.date;
     return v
       ? new Date(v as any).toLocaleString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
       : "Đang cập nhật";
   })();
+  console.log("time: ", displayTime)
 
   const bgGradient = `linear-gradient(135deg, ${ticketColor}33, ${ticketColor}55)`;
-  const background_image = firstTicket.image_url;
-  const borderColor = firstTicket.color;
+  const background_image = firstTicket?.image_url;
+  const borderColor = firstTicket?.color || ticketColor;
 
   const groupedByName = useMemo(() => {
     const map = new Map<string, Ticket[]>();
@@ -506,7 +514,7 @@ const TicketDisplay: React.FC<{
           <div
             className="absolute inset-0 opacity-15"
             style={{
-              backgroundImage: background_image,
+              backgroundImage: background_image ? `url(${background_image})` : undefined,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
@@ -556,9 +564,7 @@ const TicketDisplay: React.FC<{
                 style={{ background: "#00000040", border: `1px solid ${borderColor}33` }}
               >
                 <p className="text-gray-200 text-sm">Thời gian</p>
-                <p className="!text-white font-semibold text-sm sm:text-base">
-                  {displayTime}
-                </p>
+                <p className="!text-white font-semibold text-sm sm:text-base">{displayTime}</p>
               </div>
 
               <div
@@ -606,10 +612,7 @@ const TicketDisplay: React.FC<{
                 className="w-full h-8 rounded-full mb-4 flex items-center justify-center"
                 style={{ background: `${ticketColor}33` }}
               >
-                <div
-                  className="w-4 h-4 rounded-full animate-pulse"
-                  style={{ background: ticketColor }}
-                />
+                <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: ticketColor }} />
               </div>
             </div>
           </div>
@@ -618,7 +621,7 @@ const TicketDisplay: React.FC<{
         <div className="flex items-center justify-center gap-3 mt-8">
           <button
             onClick={onBackHome}
-            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text:black font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors text-sm sm:text-base"
+            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors text-sm sm:text-base"
           >
             Về trang chủ
           </button>
