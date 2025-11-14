@@ -1,4 +1,3 @@
-// src/pages/TicketAdmin.tsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
@@ -29,7 +28,6 @@ import { TicketType } from "../types/TicketType";
 
 import { getAllTickets, updateTicket } from "../service/TicketService";
 
-
 type TicketRow = {
   id: number;
   bookingId: number;
@@ -48,6 +46,14 @@ type Paged<T> = { items: T[]; total: number };
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
+
+// Nhận diện chuỗi có phải là TicketCode hay không (nếu không thì coi là tên KH)
+const isTicketCode = (raw: string) => {
+  const v = (raw || "").trim().toUpperCase();
+  if (!v) return false;
+  // ví dụ: CKK123456, VIP-ABC123, #GALA001, ...
+  return /^#?[A-Z0-9\-]{6,}$/.test(v) || /^[A-Z]{2,}\d{2,}/.test(v);
+};
 
 const TicketAdmin: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -69,7 +75,7 @@ const TicketAdmin: React.FC = () => {
   };
 
   // bộ lọc
-  const [ticketCode, setTicketCode] = useState<string>("");
+  const [ticketCode, setTicketCode] = useState<string>(""); // GIỮ NGUYÊN state cũ để không phá code của anh
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   // bảng
@@ -83,22 +89,34 @@ const TicketAdmin: React.FC = () => {
     pageSizeOptions: [10, 20, 50, 100],
   });
   const types = useSelector((s: RootState) => s.ticketTypes.items);
+
   // load shows 1 lần
   useEffect(() => {
     dispatch(fetchShows());
   }, [dispatch]);
   useEffect(() => {
     dispatch(fetchTicketTypes());
-  }, [dispatch])
+  }, [dispatch]);
 
   // query builder
   const queryParams = useMemo(() => {
     const params: any = {
       showId,
-      ticketCode: ticketCode?.trim() || undefined,
       page: pagination.current,
       pageSize: pagination.pageSize,
     };
+
+    const kw = ticketCode?.trim();
+    if (kw) {
+      if (isTicketCode(kw)) {
+        // nếu giống mã vé, gửi param ticketCode như cũ
+        params.ticketCode = kw.replace(/^#/, "").toUpperCase();
+      } else {
+        // nếu KHÔNG giống mã vé → coi là tên khách hàng
+        params.customerName = kw;
+      }
+    }
+
     if (range && range[0] && range[1]) {
       params.dateFrom = range[0].startOf("day").toISOString();
       params.dateTo = range[1].endOf("day").toISOString();
@@ -303,6 +321,7 @@ const TicketAdmin: React.FC = () => {
     ],
     [pagination.current, pagination.pageSize]
   );
+
   const TicketPreview: React.FC<{ ticket: TicketRow; show?: Show }> = ({ ticket, show }) => {
     const cardRef = useRef<HTMLDivElement>(null);
     const color = ticket.ticketType?.color || "#f59e0b"; // fallback vàng
@@ -332,11 +351,11 @@ const TicketAdmin: React.FC = () => {
         <div
           ref={cardRef}
           className="relative overflow-hidden rounded-2xl shadow-2xl w-[360px]"
-          style={{ background: bg, border: `1px solid ${color}55` }}
+          style={{ background: bg as any, border: `1px solid ${color}55` }}
         >
           <div className="relative z-10 p-6">
             <div className="text-center mb-4">
-              <h1 className="text-xl font-bold" >
+              <h1 className="text-xl font-bold">
                 {ticket.ticketType?.name?.toUpperCase() || "TICKET"}
               </h1>
               <p className="text-black text-sm">Re-issued Ticket</p>
@@ -399,7 +418,7 @@ const TicketAdmin: React.FC = () => {
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
-                placeholder="Tìm theo TicketCode"
+                placeholder="Tìm theo TicketCode / Tên khách"
                 value={ticketCode}
                 onChange={(e) => setTicketCode(e.target.value)}
                 size="large"
