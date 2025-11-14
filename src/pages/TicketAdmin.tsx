@@ -49,10 +49,12 @@ const { useBreakpoint } = Grid;
 
 // Nhận diện chuỗi có phải là TicketCode hay không (nếu không thì coi là tên KH)
 const isTicketCode = (raw: string) => {
-  const v = (raw || "").trim().toUpperCase();
+  const v = (raw || "").trim();
   if (!v) return false;
-  // ví dụ: CKK123456, VIP-ABC123, #GALA001, ...
-  return /^#?[A-Z0-9\-]{6,}$/.test(v) || /^[A-Z]{2,}\d{2,}/.test(v);
+  if (v.startsWith("#")) return true;        // #GALA001
+  if (/\d/.test(v)) return true;             // có số → thường là mã
+  if (/^[A-Za-z0-9\-_.]{5,}$/.test(v)) return true; // đủ dài & alpha-num
+  return false;                              // còn lại: coi là tên
 };
 
 const TicketAdmin: React.FC = () => {
@@ -110,7 +112,7 @@ const TicketAdmin: React.FC = () => {
     if (kw) {
       if (isTicketCode(kw)) {
         // nếu giống mã vé, gửi param ticketCode như cũ
-        params.ticketCode = kw.replace(/^#/, "").toUpperCase();
+        params.ticketCode = kw.replace(/^#/, "");
       } else {
         // nếu KHÔNG giống mã vé → coi là tên khách hàng
         params.customerName = kw;
