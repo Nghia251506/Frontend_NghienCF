@@ -19,7 +19,9 @@ type ShowLike = {
   locationLat?: number;
   locationLng?: number;
   locationPlaceId?: string;
-  isDefault:string;
+  isDefault: string;
+  totalSeats?: number;
+  remainingSeats?: number;
 };
 // console.log("ShowDefault: ")
 const Home: React.FC = () => {
@@ -43,7 +45,7 @@ const Home: React.FC = () => {
       const fromLocal = shows.find((s: any) => s.id === defaultId);
       if (fromLocal) return fromLocal as ShowLike;
     }
-    
+
     // 3. Fallback
     return shows[0] as ShowLike;
   }, [shows, defaultId]);
@@ -231,8 +233,20 @@ const Home: React.FC = () => {
                 Sức chứa
               </h3>
               <p className="text-sm sm:text-base" style={{ color: "rgb(var(--color-text))", opacity: 0.85 }}>
-                {(currentShow?.capacity ?? "Đang cập nhật") + (currentShow ? " ghế" : "")}
+                {(currentShow?.totalSeats ?? "Đang cập nhật") + (currentShow ? " ghế" : "")}
               </p>
+              {typeof currentShow?.remainingSeats === "number" && (
+                <span
+                  className={
+                    "mt-2 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border " +
+                    (currentShow.remainingSeats > 0
+                      ? "bg-green-500/20 text-green-400 border-green-500/30"
+                      : "bg-red-500/20 text-red-400 border-red-500/30")
+                  }
+                >
+                  Còn lại: {currentShow.remainingSeats}
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -7,6 +7,8 @@ export interface TicketType{
     totalQuantity: number;
     remainingQuantity?: number;
     description: string;
+    available?:number;
+    seatUnit?:number;
 }
 
 export interface TicketTypeCreateDto{
@@ -16,4 +18,5 @@ export interface TicketTypeCreateDto{
     price: number;
     totalQuantity: number;
     description: string;
+    seatUnit?:number
 }

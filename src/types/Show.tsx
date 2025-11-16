@@ -5,7 +5,8 @@ export interface Show{
     date: Date;
     location: string;
     bannerUrl?: string;
-    capacity: string;
+    totalSeats: number;
+    remainingSeats?:number;
     slogan: string;
     isDefault: 'Active' | 'Inactive';
     deleteStatus: 'Active' | 'Deleted';

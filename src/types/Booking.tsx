@@ -17,6 +17,7 @@ export interface Booking {
   showTitle?: string;
   ticketTypeName?: string;
   ticketTypeColor?: string;
+  seatsConsumed:number;
 }
 
 export interface BookingDto {
@@ -25,6 +26,7 @@ export interface BookingDto {
   phone: string;
   ticketTypeId: number;
   quantity: number;
+  seatsConsume?:number;
 }
 export type CreateBookingDto = {
   showId: number;
