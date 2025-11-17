@@ -85,7 +85,7 @@ const ListShow: React.FC = () => {
       date: v.date, // Date
       location: v.location,
       bannerUrl: v.bannerUrl,
-      capacity: v.capacity, // string | number (tùy kiểu của bạn)
+      totalSeats: v.totalSeats, // string | number (tùy kiểu của bạn)
       slogan: v.slogan,
     };
     await dispatch(editShow({ title: editing.title, show: updated }));
@@ -120,7 +120,7 @@ const ListShow: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-gray-400">Sức chứa:</span>
-                <Tag className="m-0">{r.capacity ?? "-"}</Tag>
+                <Tag className="m-0">{r.totalSeats ?? "-"}</Tag>
               </div>
               {r.slogan && (
                 <div className="truncate">
@@ -217,7 +217,7 @@ const ListShow: React.FC = () => {
       },
       {
         title: "Sức chứa",
-        dataIndex: "capacity",
+        dataIndex: "totalSeats",
         width: 120,
         responsive: ["md"],
         render: (c: string | number) => <Tag className="m-0">{c ?? "-"}</Tag>,

@@ -17,6 +17,6 @@ export interface ShowCreateDto{
     date: string;
     location: string;
     bannerUrl: string;
-    capacity: string;
+    totalSeats: number;
     slogan: string;
 }

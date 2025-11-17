@@ -43,7 +43,7 @@ const AddShow: React.FC = () => {
         description: (values.description || "").trim(),
         date: dateIso,
         location: (values.location || "").trim(),
-        capacity: String(values.capacity ?? "").trim(),
+        totalSeats: values.totalSeats,
         slogan: (values.slogan || "").trim(),
         ...(bannerUrl ? { bannerUrl } : {}),
       };
@@ -115,7 +115,7 @@ const AddShow: React.FC = () => {
 
             <Form.Item
               label={<span className="text-gray-200">Sức chứa (người)</span>}
-              name="capacity"
+              name="totalSeats"
               rules={[
                 { required: true, message: "Vui lòng nhập sức chứa!" },
                 { type: "number", min: 1, message: "Sức chứa phải lớn hơn 0" },

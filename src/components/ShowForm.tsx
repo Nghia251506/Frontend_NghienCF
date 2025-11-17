@@ -21,7 +21,7 @@ export type ShowFormValues = {
   date: Date;
   location: string;
   bannerUrl: string;
-  capacity: string;
+  totalSeats: number;
   slogan: string;
 };
 
@@ -51,7 +51,7 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
       date: jsDate,
       location: values.location,
       bannerUrl: values.bannerUrl ?? "",
-      capacity: String(values.capacity),
+      totalSeats: values.totalSeats,
       slogan: values.slogan,
     };
 
@@ -114,7 +114,7 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
       initialValues={{
         ...initial,
         date: initDate,
-        capacity: initial?.capacity ? Number(initial.capacity) : undefined,
+        totalSeats: initial?.totalSeats ? Number(initial.totalSeats) : undefined,
       }}
       onFinish={handleFinish}
     >

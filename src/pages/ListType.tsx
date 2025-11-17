@@ -17,6 +17,8 @@ import {
   Select,
   Tag,
   Grid,
+  Checkbox,
+  Radio,
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
@@ -146,9 +148,7 @@ const ListType: React.FC = () => {
       : types;
 
     return list.map((t) => {
-      const booked = getBookedFor(t.showId, t.id);
-      const remaining = Math.max(0, (t.totalQuantity ?? 0) - booked);
-      return { ...t, remainingQuantity: remaining };
+      return { ...t};
     });
   }, [types, selectedShowId, bookedByType]);
 
@@ -424,31 +424,39 @@ const ListType: React.FC = () => {
     }
     setOpenAdd(true);
     addForm.resetFields();
-    addForm.setFieldsValue({ showId: selectedShowId, description: "" });
+    addForm.setFieldsValue({
+      showId: selectedShowId,
+      description: "",
+      seatUnit: 1, // default seatUnit
+    });
   };
 
-  const handleAdd = async () => {
+ const handleAdd = async () => {
     try {
       const values = await addForm.validateFields();
-      await dispatch(addTicketType(values)).unwrap();
+      await dispatch(addTicketType({
+        ...values,
+        seatUnit: Number(values.seatUnit),
+      })).unwrap();
       toast.success("Đã thêm loại vé");
       setOpenAdd(false);
       addForm.resetFields();
     } catch (e: any) {
-      if (e?.errorFields) return; // validation error
+      if (e?.errorFields) return;
       toast.error(e || "Thêm thất bại");
     }
   };
 
   // ======= Edit
-  const handleEdit = async () => {
+   const handleEdit = async () => {
     if (!editing?.id) return;
     try {
       const values = await editForm.validateFields();
       const normalized: TicketType = {
         ...editing,
         ...values,
-        showId: selectedShowId ?? editing.showId, // giữ theo show đang lọc
+        showId: selectedShowId ?? editing.showId,
+        seatUnit: Number(values.seatUnit),
       };
       await dispatch(
         editTicketType({ id: editing.id, type: normalized })
@@ -526,9 +534,8 @@ const ListType: React.FC = () => {
 
       {/* Modal Add */}
       <Modal
-        title={`Thêm loại vé ${
-          selectedShowId ? `cho show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""
-        }`}
+        title={`Thêm loại vé ${selectedShowId ? `cho show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""
+          }`}
         open={openAdd}
         onCancel={() => setOpenAdd(false)}
         onOk={handleAdd}
@@ -605,14 +612,23 @@ const ListType: React.FC = () => {
           >
             <InputNumber min={0} className="w-full" placeholder="VD: 500" />
           </Form.Item>
+          <Form.Item
+            label="Đơn vị chỗ ngồi"
+            name="seatUnit"
+            rules={[{ required: true, message: "Vui lòng chọn đơn vị chỗ ngồi" }]}
+          >
+            <Radio.Group>
+              <Radio value={1}>1 chỗ</Radio>
+              <Radio value={2}>2 chỗ</Radio>
+            </Radio.Group>
+          </Form.Item>
         </Form>
       </Modal>
 
       {/* Modal Edit */}
       <Modal
-        title={`Sửa loại vé ${
-          selectedShowId ? `của show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""
-        }`}
+        title={`Sửa loại vé ${selectedShowId ? `của show "${showTitleMap.get(selectedShowId) ?? ""}"` : ""
+          }`}
         open={openEdit}
         onCancel={() => {
           setOpenEdit(false);
@@ -683,6 +699,16 @@ const ListType: React.FC = () => {
             rules={[{ required: true, message: "Vui lòng nhập tổng số lượng" }, { validator: minByBookedValidator }]}
           >
             <InputNumber min={0} className="w-full" placeholder="VD: 500" />
+          </Form.Item>
+          <Form.Item
+            label="Đơn vị chỗ ngồi"
+            name="seatUnit"
+            rules={[{ required: true, message: "Vui lòng chọn đơn vị chỗ ngồi" }]}
+          >
+            <Radio.Group>
+              <Radio value={1}>1 chỗ</Radio>
+              <Radio value={2}>2 chỗ</Radio>
+            </Radio.Group>
           </Form.Item>
         </Form>
       </Modal>

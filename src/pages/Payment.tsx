@@ -98,7 +98,7 @@ const Payment: React.FC = () => {
       setBookingData(mergedData);
       try {
         sessionStorage.setItem("bookingData", JSON.stringify(mergedData));
-      } catch {}
+      } catch { }
     }
   }, [bookingData, mergedData, setBookingData]);
 
@@ -142,7 +142,7 @@ const Payment: React.FC = () => {
           const dataUrl = await QRCode.toDataURL(paymentQrString);
           setQrCodeSrc(dataUrl);
           return;
-        } catch {}
+        } catch { }
       }
 
       // 3) BE trả URL
@@ -165,7 +165,7 @@ const Payment: React.FC = () => {
           const dataUrl = await QRCode.toDataURL(paymentQrUrl);
           setQrCodeSrc(dataUrl);
           return;
-        } catch {}
+        } catch { }
       }
 
       setQrCodeSrc("");
@@ -269,7 +269,7 @@ const Payment: React.FC = () => {
   // --- Màn payment / processing / failed ---
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-xl mx-auto lg:flex">
         <div className="bg-gray-800/50 backdrop-blur-lg p-6 sm:p-8 rounded-xl border border-yellow-500/20">
           <h1 className="text-2xl sm:text-3xl font-bold !text-white mb-6 sm:mb-8 text-center">
             Thanh toán
@@ -297,6 +297,13 @@ const Payment: React.FC = () => {
                 <span className="font-mono text-yellow-200">
                   BOOKING{mergedData!.bookingId}
                 </span>
+              </p>
+              <p className="text-red-600 mb-6 text-sm sm:text-base">
+                <h2 className="text-xl sm:text-2xl font-bold mb-4">Chính sách hoàn huỷ</h2>
+                <ul className="text-sm text-yellow-200 space-y-3">
+                  <li>• Chạm không hoàn phí trong trường hợp Anh/Chị bận việc, có lý do riêng không đến tham dự show đã đặt.</li>
+                  <li>• Tuy nhiên, Chạm sẽ bảo lưu combo Anh/Chị đã đặt cho các show sau trong 1 tháng nếu anh chị báo trước tối thiểu 1 ngày trước show diễn</li>
+                </ul>
               </p>
               <div className="bg-gray-700/50 p-4 sm:p-6 rounded-lg mb-6">
                 <h3 className="text-base sm:text-lg font-semibold !text-white mb-2">
@@ -413,6 +420,8 @@ const Payment: React.FC = () => {
             </div>
           )}
         </div>
+        {/* Phần bên phải: Chính sách hoàn huỷ và Thông tin tham dự */}
+
       </div>
     </div>
   );
@@ -471,12 +480,12 @@ const TicketDisplay: React.FC<{
     const v = currentShow?.date;
     return v
       ? new Date(v as any).toLocaleString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
       : "Đang cập nhật";
   })();
   console.log("time: ", displayTime)
@@ -502,7 +511,7 @@ const TicketDisplay: React.FC<{
 
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-sm sm:max-w-md mx-auto">
+      <div className="max-w-100 mx-auto lg:flex gap-6 flex-wrap justify-content-around">
         <div
           ref={cardRef}
           className="relative overflow-hidden rounded-2xl shadow-2xl"
@@ -615,26 +624,56 @@ const TicketDisplay: React.FC<{
                 <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: ticketColor }} />
               </div>
             </div>
+            <div className="flex items-center justify-center gap-3 mt-8">
+              <button
+                onClick={onBackHome}
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors text-sm sm:text-base"
+              >
+                Về trang chủ
+              </button>
+
+              <button
+                onClick={handleSaveImage}
+                className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 sm:py-3 px-4 sm:px-5 rounded-lg transition-colors text-sm sm:text-base"
+                title="Lưu thành ảnh"
+              >
+                <Download className="w-4 h-4" /> Tải về
+              </button>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center justify-center gap-3 mt-8">
-          <button
-            onClick={onBackHome}
-            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors text-sm sm:text-base"
-          >
-            Về trang chủ
-          </button>
-
-          <button
-            onClick={handleSaveImage}
-            className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 sm:py-3 px-4 sm:px-5 rounded-lg transition-colors text-sm sm:text-base"
-            title="Lưu thành ảnh"
-          >
-            <Download className="w-4 h-4" /> Tải về
-          </button>
+        <div className=" lg:w-1/3 w-full lg:w-1/3 bg-gray-800/50 p-6 sm:p-8 rounded-xl border border-yellow-500/20">
+          <h2 className="text-xl sm:text-2xl font-bold !text-white mt-8 mb-4">Thông tin tham dự Chạm</h2>
+          <ul className="text-sm text-gray-300 space-y-3">
+            <li>🎼 THÔNG TIN THAM DỰ CHẠM</li>
+            <li>⸻</li>
+            <li>1.⏰ Thời gian & Check-in:
+              • Chương trình diễn ra: 20h00 – 22h30
+              • Check-in: 19h20 – 20h00
+              ❌ Sau 20h30, nếu Anh/Chị chưa đến, Chạm xin phép huỷ bàn và không hoàn tiền.
+            </li>
+            <li>⸻</li>
+            <li>2.✅ Các bước check-in tại cửa:
+              1. Cung cấp Tên người đặt bàn + Mã bàn + 3 số cuối SĐT
+              2. Order đồ uống/bánh/bỏng theo combo đã đặt
+              3. Vào ổn định vị trí bàn đã đặt
+            </li>
+            <li>🚫 Lưu ý:
+              • Không trả thẻ bàn khi chưa nhận đủ đồ.
+              • Nếu thiếu đồ hoặc cần order thêm, vui lòng liên hệ nhân viên hoặc page để được hỗ trợ.
+            </li>
+            <li>⸻</li>
+            <li>3.🪑 Về chỗ ngồi:
+              * Các vị trí ngồi tự do nên mọi người vui lòng chủ động đến sớm để hoàn thiện công tác check-in và chọn vị trí ngồi ưng ý
+              * Các bàn nhóm đông người mọi xin vui lòng chủ động đến sớm giữ vị trí, nếu đến sau hết vị trí ghế liền kề xin vui lòng ngồi riêng lẻ theo số ghế còn lại
+            </li>
+          </ul>
         </div>
+
+
+
       </div>
+
     </div>
   );
 };

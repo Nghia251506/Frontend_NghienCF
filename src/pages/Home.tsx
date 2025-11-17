@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../redux/store";
-import { Link } from "react-router-dom";
+import { Link,useNavigate  } from "react-router-dom";
 import { Calendar, MapPin, Users, ArrowRight } from "lucide-react";
 import { fetchShows, hydrateDefaultShow } from "../redux/ShowSlice";
 
@@ -26,6 +26,7 @@ type ShowLike = {
 // console.log("ShowDefault: ")
 const Home: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { items: shows, defaultId, loading } = useSelector((s: RootState) => s.shows);
 
   useEffect(() => {
@@ -71,6 +72,15 @@ const Home: React.FC = () => {
     }
     return null;
   }, [currentShow]);
+  // Lọc các show sắp diễn ra
+  const upcomingShows = useMemo(() => {
+    if (!shows || shows.length === 0) return [];
+    const now = Date.now();
+    return shows
+      .filter(s => new Date(s.date).getTime() > now) // Lọc show sắp diễn ra
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 5); // Lấy tối đa 5 show sắp diễn ra
+  }, [shows]);
 
   return (
     <div className="relative">
@@ -123,7 +133,7 @@ const Home: React.FC = () => {
 
           {/* Nút dùng gradient theo --button-from / --button-to */}
           <Link
-            to="/booking"
+            to={`/booking/${currentShow?.id}`}
             className="inline-flex items-center font-bold py-4 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg"
             style={{
               color: "#000",
@@ -251,6 +261,46 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Mini Show Mới */}
+      {upcomingShows.length > 0 && (
+        <section className="mt-16">
+          <h2 className="text-center text-2xl sm:text-3xl font-bold !text-white mb-6">
+            Mini Show Mới 
+          </h2>
+
+          <div className="flex overflow-x-auto gap-6 px-4 sm:px-6">
+            {upcomingShows.map((show) => (
+              <div
+                key={show.id}
+                className="min-w-[210px] sm:min-w-[260px] cursor-pointer"
+                onClick={() => navigate(`/booking/${show.id}`)} // Điều hướng đến show khi click
+              >
+                <div className="aspect-[3/4] rounded-lg overflow-hidden bg-gray-700">
+                  <img
+                    src={show.bannerUrl || '/default.jpg'} // fallback nếu không có ảnh
+                    alt={show.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="mt-3">
+                  <div className="text-sm sm:text-base font-semibold !text-white line-clamp-2">
+                    {show.title}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-300 mt-1">
+                    {new Date(show.date as unknown as string).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };
