@@ -1,9 +1,9 @@
 // src/pages/Home.tsx
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useCallback, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../redux/store";
-import { Link,useNavigate  } from "react-router-dom";
-import { Calendar, MapPin, Users, ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Calendar, MapPin, Users, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchShows, hydrateDefaultShow } from "../redux/ShowSlice";
 
 type ShowLike = {
@@ -28,6 +28,10 @@ const Home: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { items: shows, defaultId, loading } = useSelector((s: RootState) => s.shows);
+  const resumeTimerRef = useRef<number | null>(null);
+  const startRef = useRef<() => void>(() => { });
+  const stopRef = useRef<() => void>(() => { });
+
 
   useEffect(() => {
     dispatch(hydrateDefaultShow());
@@ -72,6 +76,7 @@ const Home: React.FC = () => {
     }
     return null;
   }, [currentShow]);
+
   // Lọc các show sắp diễn ra
   const upcomingShows = useMemo(() => {
     if (!shows || shows.length === 0) return [];
@@ -79,9 +84,134 @@ const Home: React.FC = () => {
     return shows
       .filter(s => new Date(s.date).getTime() > now) // Lọc show sắp diễn ra
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 5); // Lấy tối đa 5 show sắp diễn ra
+      .slice(0, 99); // Lấy tối đa 5 show sắp diễn ra
   }, [shows]);
+  const top5 = useMemo(() => upcomingShows.slice(0, 99), [upcomingShows]);
+  const loopedShows = useMemo(() => (top5.length > 1 ? [...top5, ...top5] : top5), [top5]);
 
+  const containerRef = useRef<HTMLDivElement>(null); // khung nhìn
+  const railRef = useRef<HTMLDivElement>(null);       // dải item chạy ngang
+  const offsetRef = useRef(0);                        // vị trí hiện tại (px)
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // đo bề rộng của "nửa đầu" (5 item gốc) để loop vô hạn
+  const measureHalfWidth = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail) return 0;
+    const gap =
+      parseFloat(getComputedStyle(rail).columnGap || getComputedStyle(rail).gap || "0");
+    const children = Array.from(rail.children) as HTMLElement[];
+    const half = Math.floor(children.length / 2);
+    let w = 0;
+    for (let i = 0; i < half; i++) w += children[i].offsetWidth + gap;
+    return w;
+  }, []);
+
+  // auto-run siêu mượt bằng rAF + translate3d
+  useEffect(() => {
+    if (loopedShows.length <= 1) return;
+    let raf = 0;
+    let last = performance.now();
+    let base = measureHalfWidth();
+    const speed = 0.1; // px/ms ~10.8px/s (tự chỉnh)
+
+    const tick = (now: number) => {
+      const dt = now - last;
+      last = now;
+      const rail = railRef.current;
+      if (rail && !pausedRef.current) {
+        offsetRef.current += speed * dt;
+        if (base > 0 && offsetRef.current >= base) offsetRef.current -= base;
+        rail.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    const onResize = () => { base = measureHalfWidth(); };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [loopedShows.length, measureHalfWidth]);
+
+  // kéo/vuốt thủ công (pause khi đang kéo)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let dragging = false;
+    let startX = 0;
+    let lastX = 0;
+    let base = 0;
+
+    const recalc = () => { base = measureHalfWidth(); };
+
+    const getX = (e: PointerEvent) => e.clientX;
+
+    const down = (e: PointerEvent) => {
+      dragging = true;
+      setPaused(true);
+      startX = lastX = getX(e);
+      (el as any).setPointerCapture?.(e.pointerId);
+    };
+    const move = (e: PointerEvent) => {
+      if (!dragging) return;
+      const x = getX(e);
+      const dx = x - lastX;
+      lastX = x;
+      // lùi offset theo hướng kéo (dx>0 kéo phải → offset giảm)
+      offsetRef.current -= dx;
+      if (base > 0) {
+        // modulo để không tràn
+        offsetRef.current %= base;
+        if (offsetRef.current < 0) offsetRef.current += base;
+      }
+      if (railRef.current) {
+        railRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+      }
+      e.preventDefault(); // tránh cuộn trang
+    };
+    const up = () => {
+      dragging = false;
+      setPaused(false);
+    };
+
+    el.addEventListener("pointerdown", down, { passive: false });
+    el.addEventListener("pointermove", move, { passive: false });
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    window.addEventListener("resize", recalc);
+    recalc();
+
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      window.removeEventListener("resize", recalc);
+    };
+  }, [measureHalfWidth]);
+
+  // nút trái/phải: nhảy theo 80% chiều rộng viewport
+  const nudge = (dir: -1 | 1) => {
+    const viewW = containerRef.current?.clientWidth ?? 0;
+    const step = viewW * 0.8;
+    offsetRef.current += dir * step;
+    // để liền mạch:
+    const base = measureHalfWidth();
+    if (base > 0) {
+      offsetRef.current %= base;
+      if (offsetRef.current < 0) offsetRef.current += base;
+    }
+    if (railRef.current) {
+      railRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+    }
+  };
   return (
     <div className="relative">
       {/* Hero Section */}
@@ -263,41 +393,95 @@ const Home: React.FC = () => {
       </section>
 
       {/* Mini Show Mới */}
-      {upcomingShows.length > 0 && (
+      {top5.length > 0 && (
         <section className="mt-16">
           <h2 className="text-center text-2xl sm:text-3xl font-bold !text-white mb-6">
-            Mini Show Mới 
+            Mini Show Mới
           </h2>
 
-          <div className="flex overflow-x-auto gap-6 px-4 sm:px-6">
-            {upcomingShows.map((show) => (
-              <div
-                key={show.id}
-                className="min-w-[210px] sm:min-w-[260px] cursor-pointer"
-                onClick={() => navigate(`/booking/${show.id}`)} // Điều hướng đến show khi click
-              >
-                <div className="aspect-[3/4] rounded-lg overflow-hidden bg-gray-700">
-                  <img
-                    src={show.bannerUrl || '/default.jpg'} // fallback nếu không có ảnh
-                    alt={show.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="mt-3">
-                  <div className="text-sm sm:text-base font-semibold !text-white line-clamp-2">
-                    {show.title}
+          <div
+            ref={containerRef}
+            className="relative mx-auto max-w-6xl overflow-hidden px-6 select-none"
+            // pause resume (hover desktop, giữ tay mobile)
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            style={{ touchAction: "none" }} // cho pointer events mượt trên mobile
+          >
+            {/* Nút trái */}
+            <button
+              aria-label="Trước"
+              onClick={() => nudge(-1)}
+              className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-20
+                   w-9 h-9 items-center justify-center rounded-full
+                   bg-white/15 hover:bg-white/25 backdrop-blur
+                   border border-white/10 text-white"
+            >
+              <ChevronLeft/>
+            </button>
+
+            {/* Nút phải */}
+            <button
+              aria-label="Sau"
+              onClick={() => nudge(1)}
+              className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-20
+                   w-9 h-9 items-center justify-center rounded-full
+                   bg-white/15 hover:bg-white/25 backdrop-blur
+                   border border-white/10 text-white"
+            >
+              <ChevronRight/>
+            </button>
+
+            {/* Dải item chạy ngang */}
+            <div
+              ref={railRef}
+              className="flex gap-6 will-change-transform"
+              style={{
+                transform: "translate3d(0,0,0)",
+                // giúp GPU compositing mượt hơn
+                backfaceVisibility: "hidden",
+                WebkitFontSmoothing: "antialiased",
+              }}
+            >
+              {loopedShows.map((show, idx) => (
+                <div
+                  key={`${show.id}-${idx}`}
+                  className="min-w-[220px] sm:min-w-[260px] cursor-pointer"
+                  onClick={() => navigate(`/booking/${show.id}`)}
+                >
+                  <div className="aspect-[3/4] rounded-lg overflow-hidden bg-gray-700">
+                    <img
+                      src={show.bannerUrl || "/default.jpg"}
+                      alt={show.title}
+                      className="w-full h-full object-cover pointer-events-none"
+                      loading="lazy"
+                      onLoad={() => {
+                        // ảnh load xong đo lại để loop mượt
+                        requestAnimationFrame(() => {
+                          const base = measureHalfWidth();
+                          // “kích” transform lại để sync khi base đổi
+                          if (railRef.current) {
+                            railRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+                          }
+                        });
+                      }}
+                      draggable={false}
+                    />
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-300 mt-1">
-                    {new Date(show.date as unknown as string).toLocaleDateString("vi-VN", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })}
+                  <div className="mt-3">
+                    <div className="text-sm sm:text-base font-semibold !text-white line-clamp-2">
+                      {show.title}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-300 mt-1">
+                      {new Date(show.date as any).toLocaleDateString("vi-VN", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
       )}

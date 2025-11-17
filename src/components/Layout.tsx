@@ -44,7 +44,7 @@ const Layout: React.FC = () => {
                 </span>
               </Link>
 
-              <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+              {/* <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
                 <Link
                   to="/"
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm sm:text-base transition"
@@ -76,7 +76,7 @@ const Layout: React.FC = () => {
                   <CreditCard className="h-4 w-4" />
                   <span>Đặt chỗ</span>
                 </Link>
-              </div>
+              </div> */}
             </div>
           </div>
         </nav>
