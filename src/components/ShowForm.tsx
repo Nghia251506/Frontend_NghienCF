@@ -1,5 +1,4 @@
-// components/ShowForm.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -13,7 +12,8 @@ import {
 } from "antd";
 import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import axiosClient from "../axios/axiosClient";
+// Import Service Appwrite của ông
+import { AppwriteService } from "../../appwrite.config"; 
 
 export type ShowFormValues = {
   title: string;
@@ -40,7 +40,17 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
   );
   const [uploading, setUploading] = useState(false);
 
-  const initDate = initial?.date ? dayjs(initial.date) : undefined;
+  // Cập nhật lại form khi initial thay đổi (Sửa lỗi không fill data)
+  useEffect(() => {
+    if (initial) {
+      form.setFieldsValue({
+        ...initial,
+        date: initial.date ? dayjs(initial.date) : undefined,
+        totalSeats: initial.totalSeats ? Number(initial.totalSeats) : undefined,
+      });
+      setBannerPreview(initial.bannerUrl);
+    }
+  }, [initial, form]);
 
   const handleFinish = async (values: any) => {
     const jsDate: Date = values.date?.toDate?.() ?? new Date();
@@ -56,66 +66,59 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
     };
 
     await onSubmit(payload);
+    // Sau khi submit thành công mới reset
     form.resetFields();
     setBannerPreview(undefined);
   };
 
-  // upload ảnh
+  /**
+   * Xử lý Upload qua Appwrite
+   */
   const handleUpload = async (file: File) => {
-    const formData = new FormData();
-    // BE nhận "File" (chữ F hoa)
-    formData.append("File", file);
-
     try {
       setUploading(true);
-
-      // axiosClient đã có baseURL = https://api.chamkhoanhkhac.com/api
-      const res = await axiosClient.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      // 👇 axiosClient đã unwrap -> res chính là { url, fileName, size }
-      const url =
-        (res as any).url ||
-        (res as any).data?.url ||
-        (typeof res === "string" ? res : "");
-
-      if (!url) {
-        message.error("Upload không trả về URL (check lại BE hoặc axios interceptor)");
-        console.log("upload response = ", res);
-        return;
+      
+      // 1. Nếu đang có ảnh cũ, có thể xóa trên Appwrite để dọn rác (Tùy chọn)
+      if (bannerPreview) {
+        await AppwriteService.deleteFileByUrl(bannerPreview);
       }
 
+      // 2. Upload file mới lên Appwrite
+      const url = await AppwriteService.uploadFile(file);
+
+      // 3. Update vào Form và Preview
       form.setFieldsValue({ bannerUrl: url });
       setBannerPreview(url);
-      message.success("Tải ảnh thành công!");
+      message.success("Tải ảnh lên Appwrite thành công!");
     } catch (err: any) {
-      console.error("Upload failed", err);
-      message.error(
-        err?.response?.data?.message || "Upload ảnh thất bại. Kiểm tra lại /uploads"
-      );
+      console.error("Appwrite Upload failed", err);
+      message.error("Không thể tải ảnh lên Appwrite. Kiểm tra cấu hình Bucket/Network.");
     } finally {
       setUploading(false);
     }
-
-    // chặn antd upload
-    return false;
+    return false; // Chặn hành vi upload mặc định của antd
   };
 
-  const handleRemoveImage = () => {
-    form.setFieldsValue({ bannerUrl: "" });
-    setBannerPreview(undefined);
+  /**
+   * Xử lý Xóa ảnh
+   */
+  const handleRemoveImage = async () => {
+    if (bannerPreview) {
+      try {
+        await AppwriteService.deleteFileByUrl(bannerPreview);
+        form.setFieldsValue({ bannerUrl: "" });
+        setBannerPreview(undefined);
+        message.info("Đã xóa ảnh trên hệ thống lưu trữ.");
+      } catch (error) {
+        message.error("Lỗi khi xóa file.");
+      }
+    }
   };
 
   return (
     <Form
       form={form}
       layout="vertical"
-      initialValues={{
-        ...initial,
-        date: initDate,
-        totalSeats: initial?.totalSeats ? Number(initial.totalSeats) : undefined,
-      }}
       onFinish={handleFinish}
     >
       <Form.Item
@@ -154,65 +157,67 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
         <Input placeholder="Nhập địa điểm tổ chức..." />
       </Form.Item>
 
-      <Form.Item label="Ảnh bìa" name="bannerUrl">
+      <Form.Item label="Ảnh bìa (Appwrite Storage)" name="bannerUrl">
         <Space direction="vertical" style={{ width: "100%" }}>
           {bannerPreview ? (
-            <>
+            <div className="relative group w-[240px]">
               <Image
                 src={bannerPreview}
                 alt="Banner"
                 width={240}
-                style={{ borderRadius: 8 }}
-                preview={false}
+                className="rounded-lg object-cover shadow-md"
+                preview={true}
               />
-              <Space>
+              <div className="mt-2 flex gap-2">
                 <Upload
                   accept="image/*"
                   showUploadList={false}
-                  beforeUpload={(file) => {
-                    void handleUpload(file);
-                    return false;
-                  }}
+                  beforeUpload={handleUpload}
                 >
-                  <Button icon={<UploadOutlined />} loading={uploading}>
-                    Đổi ảnh
+                  <Button icon={<UploadOutlined />} loading={uploading} size="small">
+                    Thay ảnh khác
                   </Button>
                 </Upload>
-                <Button danger icon={<DeleteOutlined />} onClick={handleRemoveImage}>
-                  Bỏ ảnh
+                <Button 
+                  danger 
+                  icon={<DeleteOutlined />} 
+                  onClick={handleRemoveImage}
+                  size="small"
+                >
+                  Gỡ bỏ
                 </Button>
-              </Space>
-            </>
+              </div>
+            </div>
           ) : (
-            <>
-              <Upload
+            <div className="flex flex-col gap-2">
+              <Upload.Dragger
                 accept="image/*"
                 showUploadList={false}
-                beforeUpload={(file) => {
-                  void handleUpload(file);
-                  return false;
-                }}
+                beforeUpload={handleUpload}
+                className="bg-white/5 border-dashed"
               >
-                <Button icon={<UploadOutlined />} loading={uploading}>
-                  Chọn ảnh & tải lên
-                </Button>
-              </Upload>
+                <p className="ant-upload-drag-icon">
+                  <UploadOutlined style={{ color: 'rgb(var(--color-primary))' }} />
+                </p>
+                <p className="ant-upload-text text-gray-300">Nhấn hoặc kéo thả ảnh vào đây</p>
+                {uploading && <p className="text-blue-400">Đang tải lên Appwrite...</p>}
+              </Upload.Dragger>
               <Input
-                placeholder="Hoặc dán URL ảnh..."
+                placeholder="Hoặc dán trực tiếp URL ảnh..."
                 onChange={(e) => {
                   const val = e.target.value;
                   form.setFieldsValue({ bannerUrl: val });
                   setBannerPreview(val || undefined);
                 }}
               />
-            </>
+            </div>
           )}
         </Space>
       </Form.Item>
 
       <Form.Item
         label="Sức chứa (người)"
-        name="capacity"
+        name="totalSeats"
         rules={[{ required: true, message: "Vui lòng nhập sức chứa!" }]}
       >
         <InputNumber min={1} className="w-full" placeholder="Nhập sức chứa" />
@@ -226,9 +231,19 @@ const ShowForm: React.FC<Props> = ({ initial, loading, onSubmit, submitText }) =
         <Input placeholder="Ví dụ: Một đêm không thể quên!" />
       </Form.Item>
 
-      <Form.Item>
-        <Button type="primary" htmlType="submit" className="w-full" loading={loading}>
-          {submitText ?? "Lưu"}
+      <Form.Item className="mb-0 mt-6">
+        <Button 
+          type="primary" 
+          htmlType="submit" 
+          className="w-full h-11 font-bold rounded-lg" 
+          loading={loading || uploading}
+          style={{
+            backgroundImage: "linear-gradient(90deg, rgb(var(--color-primary)) 0%, color-mix(in srgb, rgb(var(--color-primary)) 80%, white) 100%)",
+            border: 'none',
+            color: '#000'
+          }}
+        >
+          {submitText ?? "Lưu Show"}
         </Button>
       </Form.Item>
     </Form>

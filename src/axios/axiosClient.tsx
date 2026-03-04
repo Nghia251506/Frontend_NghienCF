@@ -2,7 +2,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
   withCredentials: false,
 });
 
