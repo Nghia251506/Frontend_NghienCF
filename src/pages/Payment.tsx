@@ -511,7 +511,7 @@ const TicketDisplay: React.FC<{
 
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-100 mx-auto lg:flex gap-6 flex-wrap justify-content-center">
+      <div className="max-w-100 mx-auto lg:flex gap-6 flex-wrap justify-center">
         <div
           ref={cardRef}
           className="relative overflow-hidden rounded-2xl shadow-2xl"
