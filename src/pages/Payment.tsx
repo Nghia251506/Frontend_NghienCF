@@ -511,7 +511,7 @@ const TicketDisplay: React.FC<{
 
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-100 mx-auto lg:flex gap-6 flex-wrap justify-content-around">
+      <div className="max-w-100 mx-auto lg:flex gap-6 flex-wrap justify-content-center">
         <div
           ref={cardRef}
           className="relative overflow-hidden rounded-2xl shadow-2xl"
@@ -533,7 +533,7 @@ const TicketDisplay: React.FC<{
               <h1 className="text-xl sm:text-2xl font-bold" style={{ color: borderColor }}>
                 {bookingData.combo?.toUpperCase() || "MUSIC NIGHT"}
               </h1>
-              <p className="text-gray-200 text-sm">Concert Ticket</p>
+              <p className="text-gray-200 text-sm">Chạm Ticket</p>
             </div>
 
             <div className="space-y-4 mb-6">
