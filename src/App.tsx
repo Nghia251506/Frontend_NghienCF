@@ -45,9 +45,9 @@ export default function App() {
     <Router>
       <Routes>
         <Route element={
-            // <MaintenanceGuard>
+            <MaintenanceGuard>
               <Layout />
-            // </MaintenanceGuard>
+            </MaintenanceGuard>
           }>
           <Route path="/" element={<Home />} />
           <Route path="/booking/:showId" element={<Booking />} />
