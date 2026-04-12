@@ -19,6 +19,7 @@ import type { RootState, AppDispatch } from "./redux/store";
 import { fetchTheme } from "./redux/ThemeSlice";
 import { applyTheme } from "./applyTheme";
 import PrivateRoute from "./Auth/PrivateRoute";
+import MaintenanceGuard from "./pages/MaintenanceGuard";
 
 // import RouteChangeLogger from "./utils/RouteChangeLogger";
 
@@ -42,7 +43,11 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route element={<Layout />}>
+        <Route element={
+            <MaintenanceGuard>
+              <Layout />
+            </MaintenanceGuard>
+          }>
           <Route path="/" element={<Home />} />
           <Route path="/booking/:showId" element={<Booking />} />
           <Route path="/payment" element={<Payment />} />
