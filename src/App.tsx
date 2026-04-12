@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import LayoutAdmin from "./components/LayoutAdmin";
 import Home from "./pages/Home";
 import Booking from "./pages/Booking";
-import Payment from "./pages/Payment";
+import Payment from "./pages/PaymentBackUp";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import AddShow from "./pages/AddShow";
@@ -20,6 +20,7 @@ import { fetchTheme } from "./redux/ThemeSlice";
 import { applyTheme } from "./applyTheme";
 import PrivateRoute from "./Auth/PrivateRoute";
 import MaintenanceGuard from "./pages/MaintenanceGuard";
+import TicketView from "./pages/TicketView";
 
 // import RouteChangeLogger from "./utils/RouteChangeLogger";
 
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/booking/:showId" element={<Booking />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/ticket/:bookingId" element={<TicketView />} />
           <Route path="/login" element={<Login />} />
         </Route>
 
