@@ -40,7 +40,7 @@ const Payment: React.FC = () => {
             <br/><br/>
             <span className="text-sm text-yellow-400/90 italic">* Chúng tôi đang bảo trì hệ thống tự động, rất mong quý khách thông cảm.</span>
           </p>
-          <a href="https://facebook.com/chamkhoanhkhac" target="_blank" rel="noopener noreferrer" 
+          <a href="https://www.facebook.com/chamshowmusic" target="_blank" rel="noopener noreferrer" 
              className="inline-flex items-center justify-center gap-2 w-full py-4 bg-[#1877F2] text-white font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all">
             Nhắn tin Fanpage ngay <ExternalLink size={20} />
           </a>
