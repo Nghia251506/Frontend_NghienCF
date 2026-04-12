@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import {
@@ -11,6 +11,7 @@ import {
   Space,
   Typography,
   Grid,
+  Popconfirm,
 } from "antd";
 import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -19,12 +20,12 @@ import { toast } from "react-toastify";
 import { RootState, AppDispatch } from "../redux/store";
 import { fetchBookings } from "../redux/BookingSlice";
 import type { Booking } from "../types/Booking";
+import axiosClient from "../axios/axiosClient";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
 const PAGE_SIZE = 10;
-const POLL_MS = 6000; // poll 6s/lần để phát hiện order mới
 
 type Row = Booking & {
   _showTitle?: string;
@@ -41,50 +42,16 @@ const ListOrder: React.FC = () => {
   const [form] = Form.useForm();
   const [term, setTerm] = useState<string>("");
 
-  // Lưu danh sách id đã thấy để tránh toast trùng
-  const seenIdsRef = useRef<Set<number>>(new Set());
-  const pollingRef = useRef<number | null>(null);
-
+  // 🔥 Đã tắt hoàn toàn tính năng Polling (Tự động gọi API) để tiết kiệm tài nguyên Server
   useEffect(() => {
     const init = async () => {
       try {
-        const first = await dispatch(fetchBookings()).unwrap();
-        const s = new Set<number>();
-        first?.forEach((b: Booking) => s.add(b.id));
-        seenIdsRef.current = s;
+        await dispatch(fetchBookings()).unwrap();
       } catch (e: any) {
         toast.error(e || "Không tải được danh sách đơn hàng");
       }
     };
     init();
-
-    // Polling phát hiện order mới
-    pollingRef.current = window.setInterval(async () => {
-      try {
-        const latest: Booking[] = await dispatch(fetchBookings()).unwrap();
-        const seen = seenIdsRef.current;
-        const newOnes = latest.filter((b) => !seen.has(b.id));
-
-        if (newOnes.length === 1) {
-          const b = newOnes[0];
-          toast.success(
-            `🆕 Đơn mới #${b.id} - ${b.customerName} (${b.phone}), SL: ${b.quantity}, Tổng: ${toVnd(
-              b.totalAmount
-            )}`
-          );
-        } else if (newOnes.length > 1) {
-          toast.success(`🆕 Có ${newOnes.length} đơn hàng mới!`);
-        }
-
-        newOnes.forEach((b) => seen.add(b.id));
-      } catch {
-        /* im lặng nếu lỗi tạm thời */
-      }
-    }, POLL_MS);
-
-    return () => {
-      if (pollingRef.current) window.clearInterval(pollingRef.current);
-    };
   }, [dispatch]);
 
   const toVnd = (n: number) =>
@@ -115,7 +82,6 @@ const ListOrder: React.FC = () => {
     }));
   }, [filteredData]);
 
-  // Validate input tìm kiếm
   const validateQuery = (_: any, value: string) => {
     const v = (value || "").trim();
     if (!v) return Promise.reject("Vui lòng nhập tên hoặc số điện thoại");
@@ -161,6 +127,24 @@ const ListOrder: React.FC = () => {
     return <Tag color="blue">pending</Tag>;
   };
 
+  // 🔥 HÀM DUYỆT ĐƠN: Ẩn BookingCode dưới UI nhưng vẫn dùng để fetch
+  const handleIssueTicket = async (record: Row) => {
+    const paymentRef = record.bookingCode;
+    if (!paymentRef) {
+      toast.error(`Đơn #${record.id} bị thiếu mã BookingCode, không thể duyệt!`);
+      return;
+    }
+    
+    try {
+      await axiosClient.post(`/booking/update-status/${paymentRef}?status=paid`);
+      toast.success(`🎉 Đã duyệt đơn #${record.id} và phát hành vé thành công!`);
+      // Lấy lại danh sách mới để cập nhật trạng thái UI ngay lập tức
+      await dispatch(fetchBookings()).unwrap();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || `Lỗi duyệt đơn #${record.id}`);
+    }
+  };
+
   // ========== Columns (responsive)
   const columns: ColumnsType<Row> = useMemo(
     () => [
@@ -169,160 +153,91 @@ const ListOrder: React.FC = () => {
         title: "Thông tin",
         dataIndex: "info",
         responsive: ["xs"],
-        render: (_: any, b: Row, index) => (
-          <div className="min-w-[280px]">
-            <div className="flex items-center justify-between">
-              <Text strong>#{b.id} • {b.customerName}</Text>
-              <span className="text-[12px] text-gray-400">{dayjs(b.createdAt ?? b.paymentTime).format("DD/MM HH:mm")}</span>
-            </div>
+        render: (_: any, b: Row) => {
+          const currentStatus = (b.paymentStatus || "").toLowerCase();
+          const canIssueTicket = currentStatus === "pending" || currentStatus === "failed";
 
-            <div className="mt-1 grid grid-cols-1 gap-1 text-[13px] text-gray-300">
-              <div>
-                <span className="text-gray-400">SĐT:</span>{" "}
-                <b>{b.phone || "-"}</b>
+          return (
+            <div className="min-w-[280px]">
+              <div className="flex items-center justify-between">
+                <Text strong className="!text-white">#{b.id} • {b.customerName}</Text>
+                <span className="text-[12px] text-gray-400">{dayjs(b.createdAt ?? b.paymentTime).format("DD/MM HH:mm")}</span>
               </div>
-              <div className="truncate">
-                <span className="text-gray-400">Show:</span>{" "}
-                <span title={b.show?.title || "-"}>{b.show?.title || "-"}</span>
-              </div>
-              <div className="truncate">
-                <span className="text-gray-400">Loại vé:</span>{" "}
-                <b>{b._ticketTypeName || "-"}</b>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Màu:</span>
-                {b._ticketColor ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      style={{
-                        width: 12, height: 12, borderRadius: 999,
-                        border: "1px solid #ddd",
-                        background:
-                          /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(b._ticketColor.toLowerCase()) ||
-                          /(rgb|hsl)/i.test(b._ticketColor)
-                            ? b.ticketType?.color
-                            : ({ red: "#ef4444", gold: "#f59e0b", silver: "#c0c0c0" } as any)[b._ticketColor.toLowerCase()] ||
-                              b._ticketColor || "#999",
-                      }}
-                    />
-                    <code>{b._ticketColor}</code>
-                  </span>
-                ) : (
-                  <span>-</span>
-                )}
-              </div>
-              <div>
-                <span className="text-gray-400">SL:</span>{" "}
-                <b>{b.quantity}</b>
-                <span className="ml-3 text-gray-400">Tổng:</span>{" "}
-                <b>{toVnd(b.totalAmount)}</b>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Trạng thái:</span> {statusTag(b.paymentStatus)}
-              </div>
-              <div>
-                <span className="text-gray-400">Thanh toán lúc:</span>{" "}
-                {b.paymentTime ? dayjs(b.paymentTime).format("DD/MM/YYYY HH:mm") : <span className="text-gray-500">-</span>}
-              </div>
-            </div>
-          </div>
-        ),
-      },
 
-      // Các cột chi tiết (desktop từ md)
-      {
-        title: "STT",
-        dataIndex: "stt",
-        width: 80,
-        align: "center",
-        responsive: ["md"],
-        render: (_: any, __: Row, index: number) =>
-          (currentPage - 1) * PAGE_SIZE + index + 1,
-      },
-      { title: "Tên khách", dataIndex: "customerName", ellipsis: true, responsive: ["md"] },
-      {
-        title: "Số điện thoại",
-        dataIndex: "phone",
-        width: 150,
-        responsive: ["md"],
-        render: (v: string) => v || "-",
-      },
-      {
-        title: "Show",
-        dataIndex: "showTitle",
-        width: 200,
-        align: "center",
-        responsive: ["md"],
-        render: (_: any, b) => b.show?.title || "-",
-      },
-      {
-        title: "Loại vé",
-        dataIndex: "ticketTypeName",
-        width: 160,
-        align: "center",
-        responsive: ["md"],
-        render: (_: any, b) => b.ticketType?.name || "-",
-      },
-      {
-        title: "Màu vé",
-        dataIndex: "ticketTypeColor",
-        width: 150,
-        align: "center",
-        responsive: ["lg"],
-        render: (_: any, b) => {
-          const color = (b.ticketType?.color || "").toLowerCase();
-          return b.ticketType?.color ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: 999,
-                  border: "1px solid #ddd",
-                  background:
-                    /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) || /(rgb|hsl)/i.test(color)
-                      ? color
-                      : ({ red: "#ef4444", gold: "#f59e0b", silver: "#c0c0c0" } as any)[color] ||
-                        color || "#999",
-                }}
-              />
-              <span>{b.ticketType.color}</span>
-            </span>
-          ) : (
-            "-"
+              <div className="mt-1 grid grid-cols-1 gap-1 text-[13px] text-gray-300">
+                <div><span className="text-gray-400">SĐT:</span> <b>{b.phone || "-"}</b></div>
+                <div className="truncate"><span className="text-gray-400">Show:</span> <span title={b.show?.title || "-"}>{b.show?.title || "-"}</span></div>
+                <div className="truncate"><span className="text-gray-400">Loại vé:</span> <b>{b._ticketTypeName || "-"}</b></div>
+                <div><span className="text-gray-400">SL:</span> <b>{b.quantity}</b> <span className="ml-3 text-gray-400">Tổng:</span> <b>{toVnd(b.totalAmount)}</b></div>
+                <div className="flex items-center gap-2"><span className="text-gray-400">Trạng thái:</span> {statusTag(b.paymentStatus)}</div>
+              </div>
+
+              {/* 🔥 Nút hành động cho Mobile (Pending & Failed) */}
+              {canIssueTicket && (
+                <div className="mt-3">
+                  <Popconfirm
+                    title="Duyệt đơn và phát hành vé?"
+                    description={`Xác nhận đã nhận đủ ${toVnd(b.totalAmount)} cho đơn #${b.id}?`}
+                    onConfirm={() => handleIssueTicket(b)}
+                    okText="Phát hành"
+                    cancelText="Hủy"
+                  >
+                    <Button type="primary" size="small" style={{ backgroundColor: "#f59e0b", borderColor: "#f59e0b", color: "#000", fontWeight: "bold" }}>
+                      Phát hành vé
+                    </Button>
+                  </Popconfirm>
+                </div>
+              )}
+            </div>
           );
         },
       },
-      { title: "Số lượng", dataIndex: "quantity", width: 110, align: "center", responsive: ["md"] },
+
+      // Các cột chi tiết (desktop từ md)
+      { title: "STT", width: 60, align: "center", responsive: ["md"], render: (_: any, __: Row, index: number) => (currentPage - 1) * PAGE_SIZE + index + 1 },
+      { title: "Tên khách", dataIndex: "customerName", ellipsis: true, responsive: ["md"] },
+      { title: "SĐT", dataIndex: "phone", width: 120, responsive: ["md"], render: (v: string) => v || "-" },
+      { title: "Show", dataIndex: "showTitle", width: 160, align: "center", ellipsis: true, responsive: ["md"], render: (_: any, b) => b.show?.title || "-" },
+      { title: "Loại vé", dataIndex: "ticketTypeName", width: 120, align: "center", responsive: ["md"], render: (_: any, b) => b.ticketType?.name || "-" },
+      { title: "SL", dataIndex: "quantity", width: 60, align: "center", responsive: ["md"] },
+      { title: "Tổng tiền", dataIndex: "totalAmount", width: 120, responsive: ["md"], render: (v: number) => <span className="font-medium">{toVnd(v)}</span> },
+      { title: "Trạng thái", dataIndex: "paymentStatus", width: 100, align: "center", responsive: ["md"], render: (v: string) => statusTag(v) },
+      
+      // 🔥 Cột Hành động cho Desktop
       {
-        title: "Tổng tiền",
-        dataIndex: "totalAmount",
-        width: 170,
+        title: "Hành động",
+        key: "action",
+        width: 120,
+        align: "center",
         responsive: ["md"],
-        render: (v: number) => <span className="font-medium">{toVnd(v)}</span>,
-      },
-      {
-        title: "Trạng thái",
-        dataIndex: "paymentStatus",
-        width: 130,
-        responsive: ["md"],
-        render: (v: string) => statusTag(v),
-      },
-      {
-        title: "Thanh toán lúc",
-        dataIndex: "paymentTime",
-        width: 200,
-        responsive: ["md"],
-        render: (v: Date) =>
-          v ? dayjs(v).format("DD/MM/YYYY HH:mm") : <span className="text-gray-400">-</span>,
+        render: (_: any, b: Row) => {
+          const currentStatus = (b.paymentStatus || "").toLowerCase();
+          
+          // Hiển thị nút nếu là Pending hoặc Failed
+          if (currentStatus === "pending" || currentStatus === "failed") {
+            return (
+              <Popconfirm
+                title="Phát hành vé?"
+                description={`Bạn đã nhận được ${toVnd(b.totalAmount)}?`}
+                onConfirm={() => handleIssueTicket(b)}
+                okText="Đồng ý"
+                cancelText="Hủy"
+                placement="left"
+              >
+                <Button type="primary" size="small" style={{ backgroundColor: "#f59e0b", borderColor: "#f59e0b", color: "#000", fontWeight: "bold" }}>
+                  Phát hành vé
+                </Button>
+              </Popconfirm>
+            );
+          }
+          return null;
+        },
       },
     ],
     [currentPage]
   );
 
-  const handleTableChange = (p: TablePaginationConfig) => {
-    setCurrentPage(p.current ?? 1);
-  };
+  const handleTableChange = (p: TablePaginationConfig) => setCurrentPage(p.current ?? 1);
 
   return (
     <div className="w-full">
@@ -331,42 +246,14 @@ const ListOrder: React.FC = () => {
         bodyStyle={{ padding: 16 }}
         title={<Title level={3} className="!mb-0 !text-white">📦 Danh sách Order</Title>}
       >
-        {/* Search */}
-        <Form
-          form={form}
-          layout="inline"
-          onFinish={onSearch}
-          className="mb-6 flex flex-wrap gap-3"
-        >
-          <Form.Item
-            name="q"
-            className="flex-1 min-w-[260px]"
-            rules={[{ validator: validateQuery }]}
-          >
-            <Input
-              allowClear
-              size="large"
-              placeholder="Nhập tên khách hoặc số điện thoại..."
-              onPressEnter={onSearch}
-            />
+        <Form form={form} layout="inline" onFinish={onSearch} className="mb-6 flex flex-wrap gap-3">
+          <Form.Item name="q" className="flex-1 min-w-[260px]" rules={[{ validator: validateQuery }]}>
+            <Input allowClear size="large" placeholder="Nhập tên khách hoặc số điện thoại..." onPressEnter={onSearch} />
           </Form.Item>
           <Form.Item>
             <Space>
-              <Button
-                type="primary"
-                size="large"
-                icon={<SearchOutlined />}
-                onClick={onSearch}
-              >
-                Tìm
-              </Button>
-              <Button
-                size="large"
-                icon={<ReloadOutlined />}
-                onClick={onRefresh}
-              >
-                Làm mới
-              </Button>
+              <Button type="primary" size="large" icon={<SearchOutlined />} onClick={onSearch}>Tìm</Button>
+              <Button size="large" icon={<ReloadOutlined />} onClick={onRefresh}>Làm mới</Button>
             </Space>
           </Form.Item>
         </Form>
