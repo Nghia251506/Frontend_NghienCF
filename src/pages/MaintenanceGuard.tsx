@@ -26,7 +26,7 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
         <h1 style={{ fontSize: '3rem', marginBottom: '10px' }}>🛠️ Server Under Maintenance</h1>
         <p style={{ fontSize: '1.2rem', color: '#666', lineHeight: '1.5' }}>
           Hệ thống đang được nâng cấp luồng xử lý. <br />
-          Sẽ tự động mở lại vào đúng <b>20:00 - Thứ 3 (14/04)</b>. Mong ông giáo thông cảm!
+          Sẽ tự động mở lại vào đúng <b>20:00 - Thứ 3 (14/04)</b>. Mong quý khách hàng thông cảm!
         </p>
         <p style={{ fontSize: '1.1rem', color: '#555', marginTop: '20px' }}>
           Mọi chi tiết về show diễn quý khách vui lòng liên hệ qua fanpage:{' '}
