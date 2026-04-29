@@ -1,9 +1,22 @@
 // src/pages/Home.tsx
-import React, { useEffect, useMemo, useRef, useCallback, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+  useState,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../redux/store";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Users, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { fetchShows, hydrateDefaultShow } from "../redux/ShowSlice";
 
 type ShowLike = {
@@ -26,12 +39,24 @@ type ShowLike = {
 };
 
 const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-const DAY_FULL = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+const DAY_FULL = [
+  "Chủ nhật",
+  "Thứ 2",
+  "Thứ 3",
+  "Thứ 4",
+  "Thứ 5",
+  "Thứ 6",
+  "Thứ 7",
+];
 
 const Home: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { items: shows, defaultId, loading } = useSelector((s: RootState) => s.shows);
+  const {
+    items: shows,
+    defaultId,
+    loading,
+  } = useSelector((s: RootState) => s.shows);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   useEffect(() => {
@@ -42,7 +67,9 @@ const Home: React.FC = () => {
   // ── Default show (từ BE hoặc localStorage) ──────────────────────────────
   const currentShow = useMemo<ShowLike | null>(() => {
     if (!shows || shows.length === 0) return null;
-    const fromBackend = shows.find((s: any) => s.isDefault === "Active" || s.isDefault === true);
+    const fromBackend = shows.find(
+      (s: any) => s.isDefault === "Active" || s.isDefault === true,
+    );
     if (fromBackend) return fromBackend as ShowLike;
     if (defaultId != null) {
       const fromLocal = shows.find((s: any) => s.id === defaultId);
@@ -54,7 +81,10 @@ const Home: React.FC = () => {
   const mapsLink = useMemo(() => {
     if (!currentShow) return null;
     if (currentShow.locationUrl) return currentShow.locationUrl;
-    if (typeof currentShow.locationLat === "number" && typeof currentShow.locationLng === "number") {
+    if (
+      typeof currentShow.locationLat === "number" &&
+      typeof currentShow.locationLng === "number"
+    ) {
       return `https://www.google.com/maps/search/?api=1&query=${currentShow.locationLat},${currentShow.locationLng}`;
     }
     if (currentShow.location?.trim()) {
@@ -65,36 +95,59 @@ const Home: React.FC = () => {
 
   // ── Shows trong tháng này (dựa theo date) ───────────────────────────────
   const now = new Date();
-  const thisMonth = now.getMonth();
-  const thisYear = now.getFullYear();
 
-  const showsThisMonth = useMemo(() => {
+  const upcomingShows = useMemo(() => {
     if (!shows || shows.length === 0) return [];
     return shows
       .filter((s: any) => {
-        const d = new Date(s.date);
-        return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+        const showDate = new Date(s.date);
+        // Chỉ lấy các show có thời gian >= thời gian hiện tại
+        return showDate.getTime() >= now.getTime();
       })
-      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()) as ShowLike[];
-  }, [shows, thisMonth, thisYear]);
+      .sort(
+        (a: any, b: any) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime(),
+      ) as ShowLike[];
+  }, [shows]);
 
+  // Xác định tháng hiển thị: Nếu còn show, lấy tháng của show gần nhất. Nếu hết, lấy tháng hiện tại.
+  const displayMonthInfo = useMemo(() => {
+    if (upcomingShows.length > 0) {
+      const firstShowDate = new Date(upcomingShows[0].date as any);
+      return {
+        month: firstShowDate.getMonth() + 1,
+        year: firstShowDate.getFullYear(),
+      };
+    }
+    return {
+      month: now.getMonth() + 1,
+      year: now.getFullYear(),
+    };
+  }, [upcomingShows]);
+
+  // Giữ lại logic availableDays và filteredShows dựa trên danh sách upcomingShows mới
   const availableDays = useMemo(() => {
     const days = new Set<number>();
-    showsThisMonth.forEach((s) => {
+    upcomingShows.forEach((s) => {
       if (s.date) days.add(new Date(s.date as any).getDay());
     });
     return days;
-  }, [showsThisMonth]);
+  }, [upcomingShows]);
 
   const filteredShows = useMemo(() => {
-    if (selectedDay === null) return showsThisMonth;
-    return showsThisMonth.filter((s) => s.date && new Date(s.date as any).getDay() === selectedDay);
-  }, [showsThisMonth, selectedDay]);
+    if (selectedDay === null) return upcomingShows;
+    return upcomingShows.filter(
+      (s) => s.date && new Date(s.date as any).getDay() === selectedDay,
+    );
+  }, [upcomingShows, selectedDay]);
 
   // ── Carousel logic ───────────────────────────────────────────────────────
   const loopedShows = useMemo(
-    () => (filteredShows.length > 1 ? [...filteredShows, ...filteredShows] : filteredShows),
-    [filteredShows]
+    () =>
+      filteredShows.length > 1
+        ? [...filteredShows, ...filteredShows]
+        : filteredShows,
+    [filteredShows],
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -102,12 +155,16 @@ const Home: React.FC = () => {
   const offsetRef = useRef(0);
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
-  useEffect(() => { pausedRef.current = paused; }, [paused]);
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   const measureHalfWidth = useCallback(() => {
     const rail = railRef.current;
     if (!rail) return 0;
-    const gap = parseFloat(getComputedStyle(rail).columnGap || getComputedStyle(rail).gap || "0");
+    const gap = parseFloat(
+      getComputedStyle(rail).columnGap || getComputedStyle(rail).gap || "0",
+    );
     const children = Array.from(rail.children) as HTMLElement[];
     const half = Math.floor(children.length / 2);
     let w = 0;
@@ -140,9 +197,14 @@ const Home: React.FC = () => {
     };
 
     raf = requestAnimationFrame(tick);
-    const onResize = () => { base = measureHalfWidth(); };
+    const onResize = () => {
+      base = measureHalfWidth();
+    };
     window.addEventListener("resize", onResize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
   }, [loopedShows.length, measureHalfWidth]);
 
   useEffect(() => {
@@ -151,21 +213,33 @@ const Home: React.FC = () => {
     let dragging = false;
     let lastX = 0;
     let base = 0;
-    const recalc = () => { base = measureHalfWidth(); };
+    const recalc = () => {
+      base = measureHalfWidth();
+    };
     const getX = (e: PointerEvent) => e.clientX;
     const down = (e: PointerEvent) => {
-      dragging = true; setPaused(true); lastX = getX(e);
+      dragging = true;
+      setPaused(true);
+      lastX = getX(e);
       (el as any).setPointerCapture?.(e.pointerId);
     };
     const move = (e: PointerEvent) => {
       if (!dragging) return;
-      const dx = getX(e) - lastX; lastX = getX(e);
+      const dx = getX(e) - lastX;
+      lastX = getX(e);
       offsetRef.current -= dx;
-      if (base > 0) { offsetRef.current %= base; if (offsetRef.current < 0) offsetRef.current += base; }
-      if (railRef.current) railRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+      if (base > 0) {
+        offsetRef.current %= base;
+        if (offsetRef.current < 0) offsetRef.current += base;
+      }
+      if (railRef.current)
+        railRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
       e.preventDefault();
     };
-    const up = () => { dragging = false; setPaused(false); };
+    const up = () => {
+      dragging = false;
+      setPaused(false);
+    };
     el.addEventListener("pointerdown", down, { passive: false });
     el.addEventListener("pointermove", move, { passive: false });
     el.addEventListener("pointerup", up);
@@ -185,40 +259,50 @@ const Home: React.FC = () => {
     const viewW = containerRef.current?.clientWidth ?? 0;
     offsetRef.current += dir * (viewW * 0.8);
     const base = measureHalfWidth();
-    if (base > 0) { offsetRef.current %= base; if (offsetRef.current < 0) offsetRef.current += base; }
-    if (railRef.current) railRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+    if (base > 0) {
+      offsetRef.current %= base;
+      if (offsetRef.current < 0) offsetRef.current += base;
+    }
+    if (railRef.current)
+      railRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
   };
 
   return (
     <div className="relative">
-
       {/* ════════════════════════════════════════════════════════════
           SECTION 1 — SHOWS TRONG THÁNG NÀY (lên trên cùng)
       ════════════════════════════════════════════════════════════ */}
       <section className="pt-10 pb-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold !text-white">
-                🎵 Shows tháng {now.getMonth() + 1}/{now.getFullYear()}
+                🎵 Shows tháng {displayMonthInfo.month}/{displayMonthInfo.year}
               </h2>
-              <p className="text-sm mt-1" style={{ color: "rgb(var(--color-muted))" }}>
-                {showsThisMonth.length} show sắp diễn ra trong tháng này
+              <p
+                className="text-sm mt-1"
+                style={{ color: "rgb(var(--color-muted))" }}
+              >
+                {upcomingShows.length > 0
+                  ? `${upcomingShows.length} show sắp diễn ra`
+                  : "Hiện chưa có show mới sắp diễn ra"}
               </p>
             </div>
 
-            {showsThisMonth.length > 0 && (
+            {upcomingShows.length > 0 && (
               <span
                 className="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-semibold border"
                 style={{
-                  backgroundColor: "color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent)",
-                  borderColor: "color-mix(in srgb, rgb(var(--color-primary)) 40%, transparent)",
+                  backgroundColor:
+                    "color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, rgb(var(--color-primary)) 40%, transparent)",
                   color: "rgb(var(--color-primary))",
                 }}
               >
-                {filteredShows.length} show{selectedDay !== null ? ` (${DAY_FULL[selectedDay]})` : ""}
+                {filteredShows.length} show
+                {selectedDay !== null ? ` (${DAY_FULL[selectedDay]})` : ""}
               </span>
             )}
           </div>
@@ -278,15 +362,61 @@ const Home: React.FC = () => {
             <div
               className="text-center py-12 rounded-xl border"
               style={{
-                backgroundColor: "color-mix(in srgb, rgb(var(--color-surface)) 40%, transparent)",
-                borderColor: "color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent)",
+                backgroundColor:
+                  "color-mix(in srgb, rgb(var(--color-surface)) 40%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent)",
               }}
             >
               <p className="text-white/60 text-sm">
-                {showsThisMonth.length === 0
+                {upcomingShows.length === 0
                   ? "Chưa có show nào trong tháng này."
                   : `Không có show vào ${DAY_FULL[selectedDay!]} trong tháng này.`}
               </p>
+            </div>
+          ) : filteredShows.length === 1 ? (
+            /* TRƯỜNG HỢP 1 SHOW: Hiển thị Card căn giữa, không dùng Carousel */
+            <div className="flex justify-center py-4">
+              <div
+                className="w-full max-w-[280px] sm:max-w-[320px] cursor-pointer group"
+                onClick={() => navigate(`/booking/${filteredShows[0].id}`)}
+              >
+                <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 relative shadow-2xl">
+                  <img
+                    src={filteredShows[0].bannerUrl || "/default.jpg"}
+                    alt={filteredShows[0].title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div
+                    className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold text-black bg-primary"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(90deg, var(--button-from) 0%, var(--button-to) 100%)",
+                    }}
+                  >
+                    {
+                      DAY_LABELS[
+                        new Date(filteredShows[0].date as any).getDay()
+                      ]
+                    }
+                  </div>
+                </div>
+                <div className="mt-4 text-center">
+                  <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                    {filteredShows[0].title}
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    {new Date(filteredShows[0].date as any).toLocaleDateString(
+                      "vi-VN",
+                      {
+                        weekday: "long",
+                        day: "2-digit",
+                        month: "2-digit",
+                      },
+                    )}
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <div
@@ -321,7 +451,10 @@ const Home: React.FC = () => {
                 <div
                   ref={railRef}
                   className="flex gap-4 sm:gap-6 will-change-transform"
-                  style={{ transform: "translate3d(0,0,0)", backfaceVisibility: "hidden" }}
+                  style={{
+                    transform: "translate3d(0,0,0)",
+                    backfaceVisibility: "hidden",
+                  }}
                 >
                   {loopedShows.map((show, idx) => (
                     <div
@@ -350,7 +483,9 @@ const Home: React.FC = () => {
                               "linear-gradient(90deg, var(--button-from, rgb(var(--color-primary))) 0%, var(--button-to, rgb(var(--color-primary))) 100%)",
                           }}
                         >
-                          {show.date ? DAY_LABELS[new Date(show.date as any).getDay()] : ""}
+                          {show.date
+                            ? DAY_LABELS[new Date(show.date as any).getDay()]
+                            : ""}
                         </div>
                       </div>
                       <div className="mt-3 px-1">
@@ -359,11 +494,14 @@ const Home: React.FC = () => {
                         </div>
                         <div className="text-xs sm:text-sm text-gray-400 mt-1">
                           {show.date
-                            ? new Date(show.date as any).toLocaleDateString("vi-VN", {
-                                weekday: "short",
-                                day: "2-digit",
-                                month: "2-digit",
-                              })
+                            ? new Date(show.date as any).toLocaleDateString(
+                                "vi-VN",
+                                {
+                                  weekday: "short",
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                },
+                              )
                             : ""}
                         </div>
                       </div>
@@ -380,7 +518,6 @@ const Home: React.FC = () => {
           SECTION 2 — DEFAULT SHOW  (nền màu + ảnh nổi glow)
       ════════════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden min-h-screen flex items-center px-4 sm:px-6 lg:px-8 py-16 sm:py-24 mt-6">
-
         {/* ── Nền màu dựa theo --color-primary ── */}
         <div
           className="absolute inset-0 -z-10"
@@ -429,16 +566,16 @@ const Home: React.FC = () => {
         {/* ── Content: split 2 cột ── */}
         <div className="max-w-6xl mx-auto w-full">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
-
             {/* ── Cột trái: Text ── */}
             <div className="order-2 lg:order-1 flex flex-col gap-6">
-
               {/* Label pill */}
               <div
                 className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full border"
                 style={{
-                  backgroundColor: "color-mix(in srgb, rgb(var(--color-primary)) 12%, transparent)",
-                  borderColor: "color-mix(in srgb, rgb(var(--color-primary)) 35%, transparent)",
+                  backgroundColor:
+                    "color-mix(in srgb, rgb(var(--color-primary)) 12%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, rgb(var(--color-primary)) 35%, transparent)",
                   color: "rgb(var(--color-primary))",
                 }}
               >
@@ -446,7 +583,9 @@ const Home: React.FC = () => {
                   className="w-1.5 h-1.5 rounded-full animate-pulse"
                   style={{ backgroundColor: "rgb(var(--color-primary))" }}
                 />
-                <span className="text-xs font-bold uppercase tracking-widest">Show nổi bật</span>
+                <span className="text-xs font-bold uppercase tracking-widest">
+                  Show nổi bật
+                </span>
               </div>
 
               {/* Title */}
@@ -457,22 +596,30 @@ const Home: React.FC = () => {
                     "linear-gradient(135deg, rgb(var(--color-primary)) 0%, color-mix(in srgb, rgb(var(--color-primary)) 55%, #fff) 55%, #fff 100%)",
                 }}
               >
-                {currentShow?.title ?? (loading ? "Đang tải..." : "MUSIC NIGHT")}
+                {currentShow?.title ??
+                  (loading ? "Đang tải..." : "MUSIC NIGHT")}
               </h1>
 
               {/* Slogan */}
               <p
                 className="text-lg sm:text-xl leading-relaxed"
-                style={{ color: "color-mix(in srgb, rgb(var(--color-text)) 80%, transparent)" }}
+                style={{
+                  color:
+                    "color-mix(in srgb, rgb(var(--color-text)) 80%, transparent)",
+                }}
               >
-                {currentShow?.slogan ?? "Thông tin show diễn sẽ được cập nhật sớm."}
+                {currentShow?.slogan ??
+                  "Thông tin show diễn sẽ được cập nhật sớm."}
               </p>
 
               {/* Description */}
               {currentShow?.description && (
                 <p
                   className="text-sm sm:text-base leading-relaxed line-clamp-4"
-                  style={{ color: "color-mix(in srgb, rgb(var(--color-text)) 58%, transparent)" }}
+                  style={{
+                    color:
+                      "color-mix(in srgb, rgb(var(--color-text)) 58%, transparent)",
+                  }}
                 >
                   {currentShow.description}
                 </p>
@@ -484,14 +631,21 @@ const Home: React.FC = () => {
                   <div
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
                     style={{
-                      backgroundColor: "color-mix(in srgb, rgb(var(--color-surface)) 75%, transparent)",
+                      backgroundColor:
+                        "color-mix(in srgb, rgb(var(--color-surface)) 75%, transparent)",
                       color: "rgb(var(--color-text))",
                     }}
                   >
-                    <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: "rgb(var(--color-primary))" }} />
+                    <Calendar
+                      className="w-4 h-4 flex-shrink-0"
+                      style={{ color: "rgb(var(--color-primary))" }}
+                    />
                     {new Date(currentShow.date as any).toLocaleString("vi-VN", {
-                      day: "2-digit", month: "2-digit", year: "numeric",
-                      hour: "2-digit", minute: "2-digit",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </div>
                 )}
@@ -499,11 +653,15 @@ const Home: React.FC = () => {
                   <div
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
                     style={{
-                      backgroundColor: "color-mix(in srgb, rgb(var(--color-surface)) 75%, transparent)",
+                      backgroundColor:
+                        "color-mix(in srgb, rgb(var(--color-surface)) 75%, transparent)",
                       color: "rgb(var(--color-text))",
                     }}
                   >
-                    <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: "rgb(var(--color-primary))" }} />
+                    <MapPin
+                      className="w-4 h-4 flex-shrink-0"
+                      style={{ color: "rgb(var(--color-primary))" }}
+                    />
                     {mapsLink ? (
                       <a
                         href={mapsLink}
@@ -514,18 +672,24 @@ const Home: React.FC = () => {
                       >
                         {currentShow.location}
                       </a>
-                    ) : currentShow.location}
+                    ) : (
+                      currentShow.location
+                    )}
                   </div>
                 )}
                 {currentShow?.totalSeats && (
                   <div
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
                     style={{
-                      backgroundColor: "color-mix(in srgb, rgb(var(--color-surface)) 75%, transparent)",
+                      backgroundColor:
+                        "color-mix(in srgb, rgb(var(--color-surface)) 75%, transparent)",
                       color: "rgb(var(--color-text))",
                     }}
                   >
-                    <Users className="w-4 h-4 flex-shrink-0" style={{ color: "rgb(var(--color-primary))" }} />
+                    <Users
+                      className="w-4 h-4 flex-shrink-0"
+                      style={{ color: "rgb(var(--color-primary))" }}
+                    />
                     {currentShow.totalSeats} ghế
                     {typeof currentShow.remainingSeats === "number" && (
                       <span
@@ -551,7 +715,8 @@ const Home: React.FC = () => {
                     color: "#000",
                     backgroundImage:
                       "linear-gradient(90deg, var(--button-from, rgb(var(--color-primary))) 0%, var(--button-to, rgb(var(--color-primary))) 100%)",
-                    boxShadow: "0 8px 32px color-mix(in srgb, rgb(var(--color-primary)) 45%, transparent)",
+                    boxShadow:
+                      "0 8px 32px color-mix(in srgb, rgb(var(--color-primary)) 45%, transparent)",
                   }}
                 >
                   Đặt ngay
@@ -563,7 +728,6 @@ const Home: React.FC = () => {
             {/* ── Cột phải: Ảnh nổi glow ── */}
             <div className="order-1 lg:order-2 flex justify-center lg:justify-end">
               <div className="relative w-60 sm:w-72 lg:w-80 xl:w-[340px]">
-
                 {/* Glow blob lớn phía sau */}
                 <div
                   className="absolute rounded-3xl -z-10"
@@ -613,7 +777,11 @@ const Home: React.FC = () => {
                   }}
                 >
                   <img
-                    src={currentShow?.bannerUrl?.trim() ? currentShow.bannerUrl : "/default.jpg"}
+                    src={
+                      currentShow?.bannerUrl?.trim()
+                        ? currentShow.bannerUrl
+                        : "/default.jpg"
+                    }
                     alt={currentShow?.title ?? "Show"}
                     className="w-full h-full object-cover"
                   />
@@ -634,7 +802,8 @@ const Home: React.FC = () => {
                   style={{
                     backgroundImage:
                       "linear-gradient(90deg, var(--button-from, rgb(var(--color-primary))) 0%, var(--button-to, rgb(var(--color-primary))) 100%)",
-                    boxShadow: "0 4px 16px color-mix(in srgb, rgb(var(--color-primary)) 55%, transparent)",
+                    boxShadow:
+                      "0 4px 16px color-mix(in srgb, rgb(var(--color-primary)) 55%, transparent)",
                   }}
                 >
                   ⭐ Nổi bật
@@ -645,8 +814,10 @@ const Home: React.FC = () => {
                   <div
                     className="absolute -bottom-3 -left-3 z-10 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm border"
                     style={{
-                      backgroundColor: "color-mix(in srgb, rgb(var(--color-surface)) 92%, transparent)",
-                      borderColor: "color-mix(in srgb, rgb(var(--color-primary)) 35%, transparent)",
+                      backgroundColor:
+                        "color-mix(in srgb, rgb(var(--color-surface)) 92%, transparent)",
+                      borderColor:
+                        "color-mix(in srgb, rgb(var(--color-primary)) 35%, transparent)",
                       color: "rgb(var(--color-text))",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                     }}
@@ -656,7 +827,6 @@ const Home: React.FC = () => {
                 )}
               </div>
             </div>
-
           </div>
         </div>
       </section>
