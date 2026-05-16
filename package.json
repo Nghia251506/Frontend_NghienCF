@@ -17,6 +17,7 @@
     "antd": "^5.27.4",
     "appwrite": "^22.4.0",
     "axios": "^1.12.2",
+    "dayjs": "^1.11.20",
     "dompurify": "^3.3.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.344.0",

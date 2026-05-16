@@ -2,7 +2,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://benghiencf-production.up.railway.app/api",
+  baseURL: import.meta.env.VITE_API_URL || "https://api.chamkhoanhkhac.com/api",
   withCredentials: false,
 });
 

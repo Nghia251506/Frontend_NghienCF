@@ -18,6 +18,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { fetchShows, hydrateDefaultShow } from "../redux/ShowSlice";
+import dayjs from "dayjs";
 
 type ShowLike = {
   id: number;
@@ -640,7 +641,12 @@ const Home: React.FC = () => {
                       className="w-4 h-4 flex-shrink-0"
                       style={{ color: "rgb(var(--color-primary))" }}
                     />
-                    {new Date(currentShow.date as any).toLocaleString("vi-VN", {
+
+                    {/* CÚ FIX CHÍ MẠNG: Đảm bảo chuỗi có chữ Z ở cuối để trình duyệt tự cộng 7 tiếng */}
+                    {new Date(
+                      String(currentShow.date).replace("+07:00", "Z"),
+                    ).toLocaleString("vi-VN", {
+                      timeZone: "Asia/Ho_Chi_Minh",
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
