@@ -223,14 +223,17 @@ const Booking: React.FC = () => {
                 Thời gian
               </h3>
               <p style={{ color: "rgb(var(--color-text))", opacity: 0.85 }} className="text-sm sm:text-base">
-                {currentShow
-                  ? new Date(currentShow.date as any).toLocaleString("vi-VN", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
+                {currentShow?.date
+                  ? new Date(
+                      String(currentShow.date).replace("+07:00", "Z"),
+                    ).toLocaleString("vi-VN", {
+                      timeZone: "Asia/Ho_Chi_Minh",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                   : "Đang cập nhật"}
               </p>
             </div>
